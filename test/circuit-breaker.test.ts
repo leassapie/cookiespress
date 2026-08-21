@@ -22,8 +22,8 @@ describe("isSourceOutage", () => {
     expect(isSourceOutage(httpError(404))).toBe(false);
   });
 
-  test("429 and 5xx count as source failures", () => {
-    expect(isSourceOutage(httpError(429))).toBe(true);
+  test("5xx server errors count as source failures, 429 rate limit does not", () => {
+    expect(isSourceOutage(httpError(429))).toBe(false);
     expect(isSourceOutage(httpError(500))).toBe(true);
     expect(isSourceOutage(httpError(502))).toBe(true);
     expect(isSourceOutage(httpError(503))).toBe(true);

@@ -67,15 +67,15 @@ async function listOpenRedis(): Promise<string[]> {
 
 /**
  * Decide whether an upstream error indicates the source itself is down.
- * 4xx client errors (404 nonexistent book, 400 bad params, 403 block) prove the
- * source is up and must NOT trip the breaker — otherwise 3 bogus requests could
- * take a healthy source offline for everyone. Transport errors (no HTTP response)
- * and 5xx/429 count as outages.
+ * 4xx client errors (404 nonexistent book, 400 bad params, 403 block, 429 rate limit)
+ * prove the source is up and must NOT trip the breaker — otherwise 3 bogus requests
+ * could take a healthy source offline for everyone. Transport errors (no HTTP response)
+ * and 5xx count as outages.
  */
 export function isSourceOutage(err: unknown): boolean {
   const status = (err as { response?: { statusCode?: number } } | null)?.response?.statusCode;
   if (typeof status !== "number") return true;
-  return status === 429 || status >= 500;
+  return status >= 500;
 }
 
 export async function isCircuitOpen(source: string): Promise<boolean> {
