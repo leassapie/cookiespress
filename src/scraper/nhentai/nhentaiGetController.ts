@@ -1,11 +1,11 @@
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { NhentaiGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
+import { SITES as c } from "../../utils/constants";
 import { getDate, timeAgo } from "../../utils/modifier";
 import { NhentaiLegacy } from "../../interfaces/nhentai-legacy";
 import { INhentaiGet } from "../../interfaces/nhentai";
 import { NhentaiV2Detail } from "../../interfaces/nhentai-v2";
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string, random = false) {
   try {
@@ -14,7 +14,7 @@ export async function scrapeContent(url: string, random = false) {
     else res = await janda.fetchJson(url);
     const raw = res as NhentaiLegacy | NhentaiV2Detail;
 
-    const CDN = "https://i.nhentai.net";
+    const CDN = c.NHENTAI_CDN;
     const pages = "pages" in raw ? raw.pages || [] : [];
     const legacyPages = "images" in raw ? (raw.images?.pages || []) : [];
 
@@ -83,7 +83,7 @@ export async function scrapeContent(url: string, random = false) {
       data: objectData,
       source: `${c.NHENTAI}/g/${raw.id}`,
     };
-    return data;
+    return validateScraperOutput(NhentaiGetSchema, data, "nhentai");
   } catch (err) {
     const e = err as Error;
     throw Error(e.message);

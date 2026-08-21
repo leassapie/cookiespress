@@ -1,6 +1,7 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { PururinGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
+import { SITES as c } from "../../utils/constants";
 import { getPururinInfo, getUrl } from "../../utils/modifier";
 
 interface IGetPururin {
@@ -18,7 +19,6 @@ interface IData {
   source: string;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string, random = false) {
   try {
@@ -63,7 +63,7 @@ export async function scrapeContent(url: string, random = false) {
       data: objectData,
       source: `${c.PURURIN}/gallery/${id}/janda`
     };
-    return data;
+    return validateScraperOutput(PururinGetSchema, data, "pururin");
   } catch (err) {
     const e = err as Error;
     throw Error(e.message);

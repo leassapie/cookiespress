@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
+import { janda } from "../../JandaPress";
 import { removeNonNumeric } from "../../utils/modifier";
 
 interface I3HentaiSearch {
@@ -7,7 +7,6 @@ interface I3HentaiSearch {
   id: number;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {

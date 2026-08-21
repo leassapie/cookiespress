@@ -1,4 +1,4 @@
-import c from "./options";
+import { SITES as c } from "./constants";
 import { NhentaiV2GallerySummary } from "../interfaces/nhentai-v2";
 
 export const NHENTAI_SEARCH_SORTS = [

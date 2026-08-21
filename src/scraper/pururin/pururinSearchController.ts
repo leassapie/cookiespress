@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
+import { janda } from "../../JandaPress";
 import { isText } from "domhandler";
 import { getPururinInfo, getPururinPageCount, getPururinLanguage } from "../../utils/modifier";
 
@@ -21,7 +21,6 @@ interface IData {
   source: string;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {

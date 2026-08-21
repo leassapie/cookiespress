@@ -3,14 +3,7 @@ import type { LegacyRequest } from "../interfaces/legacy-request";
 import type { LegacyResponse } from "../interfaces/legacy-response";
 import type { LegacyHandler } from "../types/legacy-handler";
 import type { AppBindings } from "../types/hono-bindings";
-
-function getIp(c: Context<AppBindings>): string {
-  const forwarded = c.req.header("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]?.trim() ?? "unknown";
-  const realIp = c.req.header("x-real-ip");
-  if (realIp) return realIp;
-  return "unknown";
-}
+import { getIp } from "./get-ip";
 
 function getQuery(url: string): Record<string, string | string[]> {
   const search = new URL(url).searchParams;
@@ -42,7 +35,7 @@ export function adaptLegacyHandler(handler: LegacyHandler) {
       params: c.req.param(),
       path: c.req.path,
       method: c.req.method,
-      ip: getIp(c),
+      ip: getIp(c.req.raw.headers),
       url: new URL(c.req.url).pathname + new URL(c.req.url).search,
       get(name: string) {
         return c.req.header(name);

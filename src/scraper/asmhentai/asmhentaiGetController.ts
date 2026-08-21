@@ -1,6 +1,7 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { SITES as c } from "../../utils/constants";
+import { AsmhentaiGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
 
 
 interface IGetAsmhentai {
@@ -18,7 +19,6 @@ interface IData {
   source: string;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {
@@ -36,7 +36,7 @@ export async function scrapeContent(url: string) {
     const actualTotal = totalIfBroken.replace(/[^\d]/g, "");
     const total = parseInt($("input[id='t_pages']")?.attr("value") || actualTotal);
     const img = $("img[data-src]")?.attr("data-src") || "";
-    const imageUrl = img.replace("//", "https://");
+    const imageUrl = img.replace(/^\/\//, "https://");
     const date = $("div.pages h3").map((i, el) => $(el).text()).get();
 
     const image = [];
@@ -60,7 +60,7 @@ export async function scrapeContent(url: string) {
       data: objectData,
       source: `${c.ASMHENTAI}/g/${actualBook}/`
     };
-    return data;
+    return validateScraperOutput(AsmhentaiGetSchema, data, "asmhentai");
   } catch (err) {
     const e = err as Error;
     throw Error(e.message);

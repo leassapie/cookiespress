@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
+import { janda } from "../../JandaPress";
 import { removeNonNumeric } from "../../utils/modifier";
 
 interface IAsmHentaiSearch {
@@ -7,7 +7,6 @@ interface IAsmHentaiSearch {
   id: number;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {
@@ -28,16 +27,13 @@ export async function scrapeContent(url: string) {
     }).get();
 
 
-    const content = [];
-    for (const abc of title) {
-
+    const content = title.map((item, i) => {
       const objectData: IAsmHentaiSearch = {
-        title: abc.split("\n")[0],
-        id: parseInt(removeNonNumeric(id[title.indexOf(abc)])),
-
+        title: item.split("\n")[0],
+        id: parseInt(removeNonNumeric(id[i])),
       };
-      content.push(objectData);
-    }
+      return objectData;
+    });
 
     if (content.length === 0) throw Error("No result found");
 

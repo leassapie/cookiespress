@@ -20,8 +20,9 @@
     "test:hentai2read": "bun test test/jandapress.test.ts --test-name-pattern=^hentai2read$",
     "test:simply-hentai": "bun test test/jandapress.test.ts --test-name-pattern=^simply-hentai$",
     "test:3hentai": "bun test test/jandapress.test.ts --test-name-pattern=^3hentai$",
-    "test:rest:all": "bun run test:nhentai && bun run test:pururin && bun run test:hentaifox && bun run test:asmhentai && bun run test:hentai2read && bun run test:simply-hentai && bun run test:3hentai",
-    "test:graphql:all": "bun test test/graphql.test.ts"
+    "test:rest:all": "bun run test:nhentai & bun run test:pururin & bun run test:hentaifox & bun run test:asmhentai & bun run test:hentai2read & bun run test:simply-hentai & bun run test:3hentai & wait",
+    "test:graphql:all": "bun test test/graphql.test.ts",
+    "test:unit": "bun test test/unit-scrapers.test.ts"
   },
   "keywords": [],
   "author": "sinkaroid",
@@ -32,26 +33,26 @@
   "license": "MIT",
   "dependencies": {
     "@hono/prometheus": "^1.0.3",
-    "@hono/swagger-ui": "^0.5.2",
-    "@hono/zod-openapi": "^0.19.10",
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.6.1",
     "@keyv/redis": "^5.1.6",
     "cheerio": "^1.2.0",
     "graphql": "^17.0.2",
-    "hono": "^4.9.9",
+    "hono": "^4.13.3",
     "keyv": "^5.6.0",
     "prom-client": "^15.1.3",
-    "zod": "^3.25.67"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.14",
-    "@typescript-eslint/eslint-plugin": "^8.57.0",
-    "@typescript-eslint/parser": "^8.57.0",
-    "eslint": "^9.38.0",
-    "globals": "^17.5.0",
+    "@types/bun": "^1.4.0",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "eslint": "^10.8.1",
+    "globals": "^17.11.0",
     "typescript": "^6.0.3"
   },
   "engines": {
     "bun": ">=1.3.14"
   },
-  "packageManager": "bun@1.3.14"
+  "packageManager": "bun@1.4.0"
 }

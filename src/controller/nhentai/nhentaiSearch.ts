@@ -14,36 +14,7 @@ export async function searchNhentai(req: LegacyRequest, res: LegacyResponse) {
     if (!Number.isInteger(page) || page < 1) throw Error("Parameter page must be positive integer");
     if (!NHENTAI_SEARCH_SORTS.includes(sort as typeof NHENTAI_SEARCH_SORTS[number])) throw Error("Invalid sort: " + NHENTAI_SEARCH_SORTS.join(", "));
 
-    /**
-     * @api {get} /nhentai/search?key=:key Search nhentai
-     * @apiName Search nhentai
-     * @apiGroup nhentai
-     * @apiDescription Search doujinshi on nhentai
-     *
-     * @apiParam {String} key Keyword to search
-     * @apiParam {Number} [page=1] Page number
-     * @apiParam {String} [sort=popular-today] Sort type
-     *
-     * @apiSuccessExample {json} Success-Response:
-     * HTTP/1.1 200 OK
-     * HTTP/1.1 400 Bad Request
-     *
-     * @apiExample {curl} curl
-     * curl -i http://localhost:3000/nhentai/search?key=yuri
-     * curl -i http://localhost:3000/nhentai/search?key=yuri&page=2&sort=popular-today
-     *
-     * @apiExample {js} JS/TS
-     * import axios from "axios"
-     * axios.get("http://localhost:3000/nhentai/search?key=yuri")
-     * .then(res => console.log(res.data))
-     * .catch(err => console.error(err))
-     *
-     * @apiExample {python} Python
-     * import aiohttp
-     * async with aiohttp.ClientSession() as session:
-     *   async with session.get("http://localhost:3000/nhentai/search?key=yuri") as resp:
-     *     print(await resp.json())
-     */
+    
 
     const url = nhentaiSearchUrl(String(key), page, sort);
     const data = await scrapeContent(url);

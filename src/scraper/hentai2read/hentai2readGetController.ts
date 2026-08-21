@@ -1,6 +1,7 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { SITES as c } from "../../utils/constants";
+import { Hentai2readGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
 
 interface IHentai2readGet {
   title: string;
@@ -17,7 +18,6 @@ interface IHentai2readGetPush {
 
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {
@@ -25,15 +25,26 @@ export async function scrapeContent(url: string) {
     const $ = load(res);
     const script = $("script").map((i, el) => $(el).text()).get();
 
-    //find 'var gData = {}' inside script
-    const gData = script.find(el => el.includes("var gData"));
-    const gDataClean: string = gData?.replace(/[\s\S]*var gData = /, "").replace(/;/g, "").replace(/'/g, "\"") || "";
-    const gDataJson = JSON.parse(gDataClean);
-    const images = gDataJson.images.map((el: string) => `https://cdn-ngocok-static.sinxdr.workers.dev/hentai${el}`);
+    const gDataScript = script.find(el => /(?:\b(?:var|let|const)\s+|(?:window\.)?)gData\s*=/.test(el));
+    if (!gDataScript) throw Error("Could not find gData in page scripts");
+
+    const gDataMatch = gDataScript.match(/(?:\b(?:var|let|const)\s+|(?:window\.)?)gData\s*=\s*([\s\S]*?);\s*(?:\n|$)/);
+    if (!gDataMatch?.[1]) throw Error("Could not extract gData from page scripts");
+
+    const gDataClean = gDataMatch[1].replace(/'/g, "\"");
+    let gDataJson: { images: string[]; title: string; mainURL: string; currentURL: string; nextURL?: string; previousURL?: string };
+    try {
+      gDataJson = JSON.parse(gDataClean);
+    } catch {
+      throw Error("Failed to parse gData from page");
+    }
+    const images = gDataJson.images.map((el) => `${c.HENTAI2READ_CDN}${el}`);
+
+    const id = new URL(url).pathname.replace(/^\/|\/$/g, "");
 
     const objectData: IHentai2readGet = {
       title: gDataJson.title,
-      id: url.replace(c.HENTAI2READ, ""),
+      id,
       image: images
     };
 
@@ -48,10 +59,10 @@ export async function scrapeContent(url: string) {
     const data = {
       success: true,
       ...objectDataPush,
-      source: `${c.HENTAI2READ}${objectData.id}`,
+      source: `${c.HENTAI2READ}/${id}`,
     };
 
-    return data;
+    return validateScraperOutput(Hentai2readGetSchema, data, "hentai2read");
   } catch (err) {
     const e = err as Error;
     throw Error(e.message);

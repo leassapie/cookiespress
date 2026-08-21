@@ -11,32 +11,7 @@ export async function getNhentai(req: LegacyRequest, res: LegacyResponse) {
     if (!book) throw Error("Parameter book is required");
     if (!isNumeric(book)) throw Error("Parameter book must be number");
 
-    /**
-     * @api {get} /nhentai/get?book=:book Get nhentai
-     * @apiName Get nhentai
-     * @apiGroup nhentai
-     * @apiDescription Get a doujinshi on nhentai based on id
-     * 
-     * @apiParam {Number} book Book ID
-     * 
-     * @apiSuccessExample {json} Success-Response:
-     * HTTP/1.1 200 OK
-     * HTTP/1.1 400 Bad Request
-     * 
-     * @apiExample {curl} curl
-     * curl -i http://localhost:3000/nhentai/get?book=123
-     * 
-     * @apiExample {js} JS/TS
-     * import axios from "axios"
-     * axios.get("http://localhost:3000/nhentai/get?book=123")
-     * .then(res => console.log(res.data))
-     * 
-     * @apiExample {python} Python
-     * import aiohttp
-     * async with aiohttp.ClientSession() as session:
-     *   async with session.get("http://localhost:3000/nhentai/get?book=123") as resp:
-     *     print(await resp.json())
-     */
+    
 
     const url = nhentaiGetUrl(book);
     const data = await scrapeContent(url);

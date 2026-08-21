@@ -1,6 +1,6 @@
 /// <reference types="bun" />
 import { expect, test } from "bun:test";
-import c from "../src/utils/options";
+import { SITES as c } from "../src/utils/constants";
 import { name, version } from "../package.json";
 
 const UA = `${name}/${version} Bun/1.3.14`;

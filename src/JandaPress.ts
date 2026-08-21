@@ -1,24 +1,27 @@
 import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import { defaultUserAgent, nhentaiHeaders } from "./utils/modifier";
+import { logger } from "./utils/logger";
+import { isCircuitOpen, recordFailure, recordSuccess } from "./utils/circuit-breaker";
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
 
 const keyv = process.env.REDIS_URL
   ? new Keyv({ store: new KeyvRedis(process.env.REDIS_URL) })
   : new Keyv();
   
-keyv.on("error", err => console.log("Connection Error", err));
-const ttl = 1000 * 60 * 60 * Number(process.env.EXPIRE_CACHE);
+keyv.on("error", err => logger.error({ message: "Keyv connection error", error: (err as Error).message }));
+const ttl = 1000 * 60 * 60 * (Number(process.env.EXPIRE_CACHE) || 1);
 const GEO_TIMEOUT_MS = 3000;
+const LOCATION_CACHE_MS = 60 * 60 * 1000;
 
-let cachedLastLocation: string | null = null;
-let lastLocationTimestamp = 0;
-
-function cachedLocationOrUnknown(): string {
-  if (cachedLastLocation && lastLocationTimestamp > 0) {
-    return cachedLastLocation;
-  }
-  return "Unknown";
-}
+let cachedLocation: { value: string; expiresAt: number } | null = null;
 
 
 class JandaPress {
@@ -36,16 +39,25 @@ class JandaPress {
    * @throws Error
    */
   async simulateNhentaiRequest(target: string): Promise<unknown> {
+    const source = hostOf(target);
+    if (isCircuitOpen(source)) {
+      throw new Error(`${source} temporarily unavailable (circuit open)`);
+    }
     try {
       const res = await fetch(target, {
         headers: nhentaiHeaders(),
         redirect: "follow"
       });
       if (!res.ok) {
+        recordFailure(source);
         throw new Error(`Request failed with status ${res.status}`);
       }
+      recordSuccess(source);
       return await res.json();
     } catch (err) {
+      if (!(err as Error).message.includes("circuit open")) {
+        recordFailure(source);
+      }
       const e = err as Error;
       throw new Error(e.message);
     }
@@ -57,13 +69,18 @@ class JandaPress {
      * @returns Buffer 
      */
   async fetchBody(url: string): Promise<Buffer> {
+    const source = hostOf(url);
+    if (isCircuitOpen(source)) {
+      throw new Error(`${source} temporarily unavailable (circuit open)`);
+    }
+
     const cached = await keyv.get(url);
 
     if (cached) {
-      console.log("Fetching from cache");
+      logger.debug({ message: "Fetching from cache", url });
       return cached;
     } else if (url.includes("/random")) {
-      console.log("Random should not be cached");
+      logger.debug({ message: "Random should not be cached", url });
       const res = await fetch(url, {
         headers: {
           "User-Agent": this.useragent,
@@ -71,12 +88,14 @@ class JandaPress {
         redirect: "follow"
       });
       if (!res.ok) {
+        recordFailure(source);
         throw new Error(`Request failed with status ${res.status}`);
       }
+      recordSuccess(source);
       const body = Buffer.from(await res.arrayBuffer());
       return body;
     } else {
-      console.log("Fetching from source");
+      logger.debug({ message: "Fetching from source", url });
       const res = await fetch(url, {
         headers: {
           "User-Agent": this.useragent,
@@ -84,8 +103,10 @@ class JandaPress {
         redirect: "follow"
       });
       if (!res.ok) {
+        recordFailure(source);
         throw new Error(`Request failed with status ${res.status}`);
       }
+      recordSuccess(source);
       const body = Buffer.from(await res.arrayBuffer());
       await keyv.set(url, body, ttl);
       return body;
@@ -101,19 +122,17 @@ class JandaPress {
     const cached = await keyv.get(url);
 
     if (cached) {
-      console.log("Fetching from cache");
+      logger.debug({ message: "Fetching from cache", url });
       return cached;
     } else {
-      console.log("Fetching from source");
+      logger.debug({ message: "Fetching from source", url });
       const res = await this.simulateNhentaiRequest(url);
       await keyv.set(url, res, ttl);
       return res;
     }
   }
 
-  currentProccess() {
-    const arr = [1, 2, 3, 4, 5, 6, 9, 7, 8, 9, 10];
-    arr.reverse();
+  currentProcess() {
     const rss = process.memoryUsage().rss / 1024 / 1024;
     const heap = process.memoryUsage().heapUsed / 1024 / 1024;
     const heaptotal = process.memoryUsage().heapTotal / 1024 / 1024;
@@ -133,7 +152,7 @@ class JandaPress {
         signal: controller.signal,
       });
       if (!raw.ok) {
-        return cachedLocationOrUnknown();
+        return cachedLocation && cachedLocation.expiresAt > Date.now() ? cachedLocation.value : "Unknown";
       }
       const data = await raw.json() as {
         success?: boolean;
@@ -141,20 +160,19 @@ class JandaPress {
         region?: string;
       };
       if (data.success === false) {
-        return cachedLocationOrUnknown();
+        return cachedLocation && cachedLocation.expiresAt > Date.now() ? cachedLocation.value : "Unknown";
       }
       const country = data.country?.trim();
       const region = data.region?.trim();
       if (!country || !region) {
-        return cachedLocationOrUnknown();
+        return cachedLocation && cachedLocation.expiresAt > Date.now() ? cachedLocation.value : "Unknown";
       }
 
       const location = `${country}, ${region}`;
-      cachedLastLocation = location;
-      lastLocationTimestamp = Date.now();
+      cachedLocation = { value: location, expiresAt: Date.now() + LOCATION_CACHE_MS };
       return location;
     } catch {
-      return cachedLocationOrUnknown();
+      return cachedLocation && cachedLocation.expiresAt > Date.now() ? cachedLocation.value : "Unknown";
     } finally {
       clearTimeout(timeoutId);
       if (!controller.signal.aborted) {
@@ -166,3 +184,4 @@ class JandaPress {
 }
 
 export default JandaPress;
+export const janda = new JandaPress();

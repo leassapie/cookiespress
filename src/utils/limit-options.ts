@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
-import type { HeaderReader } from "../interfaces/header-reader";
 import type { AppBindings } from "../types/hono-bindings";
+import { getIp } from "./get-ip";
 
 type Counter = { count: number; resetAt: number };
 
@@ -13,26 +13,6 @@ const BUCKET_MAX_SIZE = 50000;
 const SWEEP_MS = 30000;
 const buckets = new Map<string, Counter>();
 let overflowCounter: Counter | null = null;
-const TRUSTED_IP_HEADERS = ["cf-connecting-ip", "fly-client-ip", "x-vercel-forwarded-for", "x-client-ip"] as const;
-const ALLOW_UNTRUSTED_PROXY_HEADERS = process.env.ALLOW_UNTRUSTED_PROXY_HEADERS === "true";
-
-function firstIp(value: string): string {
-  return value.split(",")[0]?.trim() ?? "unknown";
-}
-
-function getIp(headers: HeaderReader): string {
-  for (const header of TRUSTED_IP_HEADERS) {
-    const candidate = headers.get(header);
-    if (candidate) return firstIp(candidate);
-  }
-  if (ALLOW_UNTRUSTED_PROXY_HEADERS) {
-    const forwarded = headers.get("x-forwarded-for");
-    if (forwarded) return firstIp(forwarded);
-    const realIp = headers.get("x-real-ip");
-    if (realIp) return firstIp(realIp);
-  }
-  return "unknown";
-}
 
 function touch(key: string): Counter {
   const now = Date.now();

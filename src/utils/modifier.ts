@@ -1,5 +1,6 @@
 import { load } from "cheerio";
-import c from "./options";
+import { logger } from "./logger";
+import { SITES as c } from "./constants";
 import { nhentaiRandomUrl } from "./nhentai";
 import * as pkg from "../../package.json";
 
@@ -113,7 +114,7 @@ function timeAgo(input: Date) {
  * @param url
  * @returns boolean
  */
-async function mock(url: string) {
+async function isReachable(url: string) {
   const site = await fetch(url, { redirect: "follow" });
   if (site.status === 200) {
     return true;
@@ -188,7 +189,7 @@ export function nhentaiHeaders(): Record<string, string> {
   const userAgent = process.env.USER_AGENT || defaultUserAgent();
   const maskedKey = key ? `${key.slice(0, 6)}...(${key.length})` : "none";
 
-  console.log(`[nhentai] headers ready | apiKey=${maskedKey} | auth=${key ? "Bearer" : "none"} | ua=${userAgent}`);
+  logger.info({ message: "nhentai headers ready", apiKey: maskedKey, auth: key ? "Bearer" : "none", userAgent });
 
   return {
     "User-Agent": userAgent,
@@ -231,12 +232,12 @@ export async function hentaiFoxPredictedExtension(url: string): Promise<".jpg" |
     }
   } catch (err) {
     const e = err as Error;
-    console.log(e.message);
+    logger.error({ message: "hentaiFox extension prediction failed", error: e.message });
     return ".webp";
   }
 }
 
 export {
   getPururinInfo, getPururinPageCount, getUrl, getId, getDate, timeAgo,
-  mock, getPururinLanguage, removeNonNumeric
+  isReachable, getPururinLanguage, removeNonNumeric
 };

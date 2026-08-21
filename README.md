@@ -181,7 +181,7 @@ bun run test:3hentai
 
 ### OpenAPI and playground
 
-`bun run build` then open `/doc` or `/playground`
+`bun run build` then open `/docs` or `/playground`
 
 > To running other tests, you can see object scripts in file `package.json`
 

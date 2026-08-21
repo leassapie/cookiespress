@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { SITES as c } from "../../utils/constants";
 
 interface IHentaiFoxSearch {
   title: string;
@@ -11,7 +11,6 @@ interface IHentaiFoxSearch {
   link: string;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {
@@ -34,19 +33,17 @@ export async function scrapeContent(url: string) {
     const imgSrc = $("img").map((i, el) => $(el).attr("data-cfsrc")).get();
     const imgSrcClean = imgSrc.slice(0, imgSrc.length - 1);
     
-    const content = [];
-    for (const abc of title) {
+    const content = title.map((item, i) => {
       const objectData: IHentaiFoxSearch = {
-        title: title[title.indexOf(abc)],
-        cover: imgSrcClean[title.indexOf(abc)],
-        id: parseInt(link[title.indexOf(abc)]),
+        title: item,
+        cover: imgSrcClean[i],
+        id: parseInt(link[i]),
         language: "Translated",
-        category: category[title.indexOf(abc)],
-        link: `${c.HENTAIFOX}/gallery/${link[title.indexOf(abc)]}`,
+        category: category[i],
+        link: `${c.HENTAIFOX}/gallery/${link[i]}`,
       };
-      content.push(objectData);
-
-    }
+      return objectData;
+    });
 
     if (content.length === 0) throw Error("No result found");
     
@@ -54,8 +51,8 @@ export async function scrapeContent(url: string) {
     const data = {
       success: true,
       data: content.filter(con => con.category !== ""),
-      page: Number(url.split("&page=")[1]),
-      sort: url.split("&sort=")[1].split("&")[0],
+      page: Number(new URL(url).searchParams.get("page") || 1),
+      sort: new URL(url).searchParams.get("sort") || "latest",
       source: url,
     };
     return data;

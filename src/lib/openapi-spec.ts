@@ -1,5 +1,113 @@
 import * as pkg from "../../package.json";
 
+interface RouteParam {
+  name: string;
+  in: "query" | "path";
+  required: boolean;
+  type?: string;
+}
+
+interface RouteDef {
+  path: string;
+  method: "get" | "post";
+  summary: string;
+  operationId: string;
+  params?: RouteParam[];
+  requestBody?: boolean;
+}
+
+const ROUTES: RouteDef[] = [
+  // Health
+  { path: "/", method: "get", summary: "Service health", operationId: "health" },
+  { path: "/health", method: "get", summary: "Health check (no external calls)", operationId: "healthCheck" },
+
+  // Aggregate
+  { path: "/search/all", method: "get", summary: "Search all sources in parallel", operationId: "searchAll", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false, type: "integer" }] },
+
+  // nhentai
+  { path: "/nhentai/get", method: "get", summary: "Get nhentai gallery", operationId: "nhentaiGet", params: [{ name: "book", in: "query", required: true }] },
+  { path: "/nhentai/search", method: "get", summary: "Search nhentai galleries", operationId: "nhentaiSearch", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false }, { name: "sort", in: "query", required: false }] },
+  { path: "/nhentai/related", method: "get", summary: "Get nhentai related galleries", operationId: "nhentaiRelated", params: [{ name: "book", in: "query", required: true }] },
+  { path: "/nhentai/random", method: "get", summary: "Get random nhentai gallery", operationId: "nhentaiRandom" },
+
+  // pururin
+  { path: "/pururin/get", method: "get", summary: "Get pururin gallery", operationId: "pururinGet", params: [{ name: "book", in: "query", required: true }] },
+  { path: "/pururin/search", method: "get", summary: "Search pururin galleries", operationId: "pururinSearch", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false }] },
+  { path: "/pururin/random", method: "get", summary: "Get random pururin gallery", operationId: "pururinRandom" },
+
+  // hentaifox
+  { path: "/hentaifox/get", method: "get", summary: "Get hentaifox gallery", operationId: "hentaifoxGet", params: [{ name: "book", in: "query", required: true }] },
+  { path: "/hentaifox/search", method: "get", summary: "Search hentaifox galleries", operationId: "hentaifoxSearch", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false }] },
+  { path: "/hentaifox/random", method: "get", summary: "Get random hentaifox gallery", operationId: "hentaifoxRandom" },
+
+  // asmhentai
+  { path: "/asmhentai/get", method: "get", summary: "Get asmhentai gallery", operationId: "asmhentaiGet", params: [{ name: "book", in: "query", required: true }] },
+  { path: "/asmhentai/search", method: "get", summary: "Search asmhentai galleries", operationId: "asmhentaiSearch", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false }] },
+  { path: "/asmhentai/random", method: "get", summary: "Get random asmhentai gallery", operationId: "asmhentaiRandom" },
+
+  // hentai2read
+  { path: "/hentai2read/get", method: "get", summary: "Get hentai2read gallery", operationId: "hentai2readGet", params: [{ name: "book", in: "query", required: true }] },
+  { path: "/hentai2read/search", method: "get", summary: "Search hentai2read galleries", operationId: "hentai2readSearch", params: [{ name: "key", in: "query", required: true }] },
+
+  // simply-hentai
+  { path: "/simply-hentai/get", method: "get", summary: "Get simply-hentai gallery", operationId: "simplyHentaiGet", params: [{ name: "book", in: "query", required: true }] },
+
+  // 3hentai
+  { path: "/3hentai/get", method: "get", summary: "Get 3hentai gallery", operationId: "threeHentaiGet", params: [{ name: "book", in: "query", required: true }] },
+  { path: "/3hentai/search", method: "get", summary: "Search 3hentai galleries", operationId: "threeHentaiSearch", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false }] },
+  { path: "/3hentai/random", method: "get", summary: "Get random 3hentai gallery", operationId: "threeHentaiRandom" },
+
+  // Redirect shortcuts
+  { path: "/g/{id}", method: "get", summary: "Redirect to nhentai gallery", operationId: "redirectNhentai", params: [{ name: "id", in: "path", required: true }] },
+  { path: "/p/{id}", method: "get", summary: "Redirect to pururin gallery", operationId: "redirectPururin", params: [{ name: "id", in: "path", required: true }] },
+  { path: "/h/{id}", method: "get", summary: "Redirect to hentaifox gallery", operationId: "redirectHentaifox", params: [{ name: "id", in: "path", required: true }] },
+  { path: "/a/{id}", method: "get", summary: "Redirect to asmhentai gallery", operationId: "redirectAsmhentai", params: [{ name: "id", in: "path", required: true }] },
+
+  // GraphQL
+  { path: "/graphql", method: "post", summary: "GraphQL endpoint", operationId: "graphqlQuery", requestBody: true },
+  { path: "/graphql", method: "get", summary: "GraphQL GET query", operationId: "graphqlPlayground", params: [{ name: "query", in: "query", required: false }] },
+
+  // Docs
+  { path: "/docs", method: "get", summary: "OpenAPI specification", operationId: "openapiDocument" },
+  { path: "/playground", method: "get", summary: "Swagger UI playground", operationId: "swaggerPlayground" },
+];
+
+function routeToPathItem(route: RouteDef) {
+  const item: Record<string, unknown> = {
+    summary: route.summary,
+    operationId: route.operationId,
+    responses: { "200": { description: "Success" } },
+  };
+
+  if (route.params?.length) {
+    item.parameters = route.params.map((p) => ({
+      name: p.name,
+      in: p.in,
+      required: p.required,
+      schema: { type: p.type || "string" },
+    }));
+  }
+
+  if (route.requestBody) {
+    item.requestBody = {
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              query: { type: "string" },
+              variables: { type: "object" },
+            },
+            required: ["query"],
+          },
+        },
+      },
+    };
+  }
+
+  return { [route.method]: item };
+}
+
 export const openAPISpec = {
   openapi: "3.0.0",
   info: {
@@ -17,281 +125,7 @@ export const openAPISpec = {
       description: "Development server",
     },
   ],
-  paths: {
-    "/": {
-      get: {
-        summary: "Service health",
-        operationId: "health",
-        responses: {
-          "200": {
-            description: "Service status",
-          },
-        },
-      },
-    },
-    "/nhentai/get": {
-      get: {
-        summary: "Get nhentai gallery",
-        operationId: "nhentaiGet",
-        parameters: [
-          { name: "book", in: "query", required: true, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/nhentai/search": {
-      get: {
-        summary: "Search nhentai galleries",
-        operationId: "nhentaiSearch",
-        parameters: [
-          { name: "key", in: "query", required: true, schema: { type: "string" } },
-          { name: "page", in: "query", required: false, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/nhentai/related": {
-      get: {
-        summary: "Get nhentai related galleries",
-        operationId: "nhentaiRelated",
-        parameters: [
-          { name: "book", in: "query", required: true, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/nhentai/random": {
-      get: {
-        summary: "Get random nhentai gallery",
-        operationId: "nhentaiRandom",
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/pururin/get": {
-      get: {
-        summary: "Get pururin gallery",
-        operationId: "pururinGet",
-        parameters: [
-          { name: "book", in: "query", required: true, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/pururin/search": {
-      get: {
-        summary: "Search pururin galleries",
-        operationId: "pururinSearch",
-        parameters: [
-          { name: "key", in: "query", required: true, schema: { type: "string" } },
-          { name: "page", in: "query", required: false, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/pururin/random": {
-      get: {
-        summary: "Get random pururin gallery",
-        operationId: "pururinRandom",
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/hentaifox/get": {
-      get: {
-        summary: "Get hentaifox gallery",
-        operationId: "hentaifoxGet",
-        parameters: [
-          { name: "book", in: "query", required: true, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/hentaifox/search": {
-      get: {
-        summary: "Search hentaifox galleries",
-        operationId: "hentaifoxSearch",
-        parameters: [
-          { name: "key", in: "query", required: true, schema: { type: "string" } },
-          { name: "page", in: "query", required: false, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/hentaifox/random": {
-      get: {
-        summary: "Get random hentaifox gallery",
-        operationId: "hentaifoxRandom",
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/asmhentai/get": {
-      get: {
-        summary: "Get asmhentai gallery",
-        operationId: "asmhentaiGet",
-        parameters: [
-          { name: "book", in: "query", required: true, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/asmhentai/search": {
-      get: {
-        summary: "Search asmhentai galleries",
-        operationId: "asmhentaiSearch",
-        parameters: [
-          { name: "key", in: "query", required: true, schema: { type: "string" } },
-          { name: "page", in: "query", required: false, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/asmhentai/random": {
-      get: {
-        summary: "Get random asmhentai gallery",
-        operationId: "asmhentaiRandom",
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/hentai2read/get": {
-      get: {
-        summary: "Get hentai2read gallery",
-        operationId: "hentai2readGet",
-        parameters: [
-          { name: "book", in: "query", required: true, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/hentai2read/search": {
-      get: {
-        summary: "Search hentai2read galleries",
-        operationId: "hentai2readSearch",
-        parameters: [
-          { name: "key", in: "query", required: true, schema: { type: "string" } },
-          { name: "page", in: "query", required: false, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/simply-hentai/get": {
-      get: {
-        summary: "Get simply-hentai gallery",
-        operationId: "simplyHentaiGet",
-        parameters: [
-          { name: "book", in: "query", required: true, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/3hentai/get": {
-      get: {
-        summary: "Get 3hentai gallery",
-        operationId: "threeHentaiGet",
-        parameters: [
-          { name: "book", in: "query", required: true, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/3hentai/search": {
-      get: {
-        summary: "Search 3hentai galleries",
-        operationId: "threeHentaiSearch",
-        parameters: [
-          { name: "key", in: "query", required: true, schema: { type: "string" } },
-          { name: "page", in: "query", required: false, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/3hentai/random": {
-      get: {
-        summary: "Get random 3hentai gallery",
-        operationId: "threeHentaiRandom",
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/g/{id}": {
-      get: {
-        summary: "Redirect to nhentai gallery",
-        operationId: "redirectNhentai",
-        parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string" } },
-        ],
-        responses: { "301": { description: "Redirect" } },
-      },
-    },
-    "/p/{id}": {
-      get: {
-        summary: "Redirect to pururin gallery",
-        operationId: "redirectPururin",
-        parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string" } },
-        ],
-        responses: { "301": { description: "Redirect" } },
-      },
-    },
-    "/h/{id}": {
-      get: {
-        summary: "Redirect to hentaifox gallery",
-        operationId: "redirectHentaifox",
-        parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string" } },
-        ],
-        responses: { "301": { description: "Redirect" } },
-      },
-    },
-    "/a/{id}": {
-      get: {
-        summary: "Redirect to asmhentai gallery",
-        operationId: "redirectAsmhentai",
-        parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string" } },
-        ],
-        responses: { "301": { description: "Redirect" } },
-      },
-    },
-    "/graphql": {
-      post: {
-        summary: "GraphQL endpoint",
-        operationId: "graphqlQuery",
-        requestBody: {
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  query: { type: "string" },
-                  variables: { type: "object" },
-                },
-                required: ["query"],
-              },
-            },
-          },
-        },
-        responses: { "200": { description: "Success" } },
-      },
-      get: {
-        summary: "GraphQL GraphiQL playground or query",
-        operationId: "graphqlPlayground",
-        parameters: [
-          { name: "query", in: "query", required: false, schema: { type: "string" } },
-        ],
-        responses: { "200": { description: "Success" } },
-      },
-    },
-    "/doc": {
-      get: {
-        summary: "OpenAPI specification",
-        operationId: "openapiDocument",
-        responses: { "200": { description: "OpenAPI JSON" } },
-      },
-    },
-    "/playground": {
-      get: {
-        summary: "Swagger UI playground",
-        operationId: "swaggerPlayground",
-        responses: { "200": { description: "Swagger UI page" } },
-      },
-    },
-  },
+  paths: Object.fromEntries(
+    ROUTES.map((route) => [route.path, routeToPathItem(route)])
+  ),
 } as const;

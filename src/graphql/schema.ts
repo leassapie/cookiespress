@@ -6,8 +6,8 @@ import {
   GraphQLSchema,
   GraphQLString,
 } from "graphql";
-import c from "../utils/options";
-import { mock } from "../utils/modifier";
+import { SITES as c } from "../utils/constants";
+import { isReachable } from "../utils/modifier";
 import {
   nhentaiGetUrl,
   nhentaiRelatedUrl,
@@ -18,7 +18,7 @@ import { scrapeContent as nhentaiGetScrape } from "../scraper/nhentai/nhentaiGet
 import { scrapeContent as nhentaiSearchScrape } from "../scraper/nhentai/nhentaiSearchController";
 import { scrapeContent as nhentaiRelatedScrape } from "../scraper/nhentai/nhentaiRelatedController";
 import { scrapeContent as pururinGetScrape } from "../scraper/pururin/pururinGetController";
-import { scrapeContent as pururinRandomScrape } from "../scraper/pururin/pururinGetControllerRandom";
+import { scrapeContent as pururinRandomScrape } from "../scraper/pururin/pururinGetController";
 import { scrapeContent as pururinSearchScrape } from "../scraper/pururin/pururinSearchController";
 import { scrapeContent as hentaifoxGetScrape } from "../scraper/hentaifox/hentaifoxGetController";
 import { scrapeContent as hentaifoxSearchScrape } from "../scraper/hentaifox/hentaifoxSearchController";
@@ -432,6 +432,7 @@ const Hentai2readSearchDataType = new GraphQLObjectType({
 const Hentai2readSearchResultType = new GraphQLObjectType({
   name: "Hentai2readSearchResult",
   fields: {
+    success: { type: GraphQLBoolean },
     data: { type: new GraphQLList(Hentai2readSearchDataType) },
     source: { type: GraphQLString },
   },
@@ -494,7 +495,7 @@ const SimplyHentaiQueriesType = new GraphQLObjectType({
       args: { book: { type: GraphQLString } },
       resolve: async (_: unknown, args: { book: string }) => {
         let actualAPI = c.SIMPLY_HENTAI;
-        if (!await mock(c.SIMPLY_HENTAI)) actualAPI = c.SIMPLY_HENTAI_PROXIFIED;
+        if (!await isReachable(c.SIMPLY_HENTAI)) actualAPI = c.SIMPLY_HENTAI_PROXIFIED;
         const url = `${actualAPI}/${args.book}`;
         return simplyHentaiGetScrape(url);
       },

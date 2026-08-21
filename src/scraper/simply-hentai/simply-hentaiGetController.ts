@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { SimplyHentaiGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
 
 interface ISimplyHentaiGet {
   title: string;
@@ -11,7 +11,6 @@ interface ISimplyHentaiGet {
   language: string;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {
@@ -29,7 +28,7 @@ export async function scrapeContent(url: string) {
    
     const objectData: ISimplyHentaiGet = {
       title: metaRaw.title,
-      id: url.replace(c.SIMPLY_HENTAI_PROXIFIED, ""),
+      id: new URL(url).pathname.replace(/^\/|\/$/g, ""),
       tags: tags,
       total: images.length,
       image: images,
@@ -41,7 +40,7 @@ export async function scrapeContent(url: string) {
       data: objectData,
       source: url,
     };
-    return data;
+    return validateScraperOutput(SimplyHentaiGetSchema, data, "simply-hentai");
   } catch (err) {
     const e = err as Error;
     throw Error(e.message);

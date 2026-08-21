@@ -1,6 +1,7 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { SITES as c } from "../../utils/constants";
+import { HentaifoxGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
 import { hentaiFoxPredictedExtension } from "../../utils/modifier";
 
 interface IHentaiFoxGet {
@@ -12,7 +13,6 @@ interface IHentaiFoxGet {
   image: string[];
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {
@@ -25,6 +25,7 @@ export async function scrapeContent(url: string) {
     }).get();
 
     const imgSrc = $("img").map((i, el) => $(el).attr("data-src")).get();
+    if (!imgSrc.length) throw Error("No images found");
     const img1_clean = imgSrc[0].replace(/\/\d+$/, "");
     const extPredict = img1_clean.replace("t.", ".");
     const extPredicted = await hentaiFoxPredictedExtension(extPredict);
@@ -58,7 +59,7 @@ export async function scrapeContent(url: string) {
       data: objectData,
       source: `${c.HENTAIFOX}/gallery/${id}/`,
     };
-    return data;
+    return validateScraperOutput(HentaifoxGetSchema, data, "hentaifox");
   } catch (err) {
     const e = err as Error;
     throw Error(e.message);

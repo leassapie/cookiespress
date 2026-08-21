@@ -1,5 +1,5 @@
 import { scrapeContent } from "../../scraper/hentaifox/hentaifoxGetController";
-import c from "../../utils/options";
+import { SITES as c } from "../../utils/constants";
 import { logger } from "../../utils/logger";
 import { maybeError } from "../../utils/modifier";
 import type { LegacyRequest } from "../../interfaces/legacy-request";
@@ -7,33 +7,7 @@ import type { LegacyResponse } from "../../interfaces/legacy-response";
 
 export async function randomHentaifox(req: LegacyRequest, res: LegacyResponse) {
   try {
-    /**
-     * @api {get} /hentaifox/random Random hentaifox
-     * @apiName Random hentaifox
-     * @apiGroup hentaifox
-     * @apiDescription Gets random doujinshi on hentaifox
-     * 
-     * @apiSuccessExample {json} Success-Response:
-     *   HTTP/1.1 200 OK
-     *   HTTP/1.1 400 Bad Request
-     * 
-     * @apiExample {curl} curl
-     * curl -i http://localhost:3000/hentaifox/random
-     * 
-     * @apiExample {js} JS/TS
-     * import axios from "axios"
-     * 
-     * axios.get("http://localhost:3000/hentaifox/random")
-     * .then(res => console.log(res.data))
-     * .catch(err => console.error(err))
-     * 
-     * @apiExample {python} Python
-     * import aiohttp
-     * async with aiohttp.ClientSession() as session:
-     *  async with session.get("http://localhost:3000/hentaifox/random") as resp:
-     *    print(await resp.json())
-     * 
-     */
+    
     const url = `${c.HENTAIFOX}/random`;
     const data = await scrapeContent(url);
     logger.info({

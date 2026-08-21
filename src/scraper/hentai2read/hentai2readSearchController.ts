@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { SITES as c } from "../../utils/constants";
 import { getId } from "../../utils/modifier";
 
 interface IHentai2readSearch {
@@ -11,7 +11,6 @@ interface IHentai2readSearch {
   message: string;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {
@@ -22,22 +21,21 @@ export async function scrapeContent(url: string) {
     const id = $(".overlay-title").map((i, el) => $(el).children("a").attr("href")).get();
     const idClean = id.map(el => getId(el));
 
-    const content = [];
-    for (const abc of title) {
+    const content = title.map((item, i) => {
       const objectData: IHentai2readSearch = {
-        title: title[title.indexOf(abc)],
-        cover: `${c.HENTAI2READ}${imgSrc[title.indexOf(abc)]}`,
-        id: idClean[title.indexOf(abc)],
-        link: `${c.HENTAI2READ}${idClean[title.indexOf(abc)]}`,
+        title: item,
+        cover: `${c.HENTAI2READ}${imgSrc[i]}`,
+        id: idClean[i],
+        link: `${c.HENTAI2READ}${idClean[i]}`,
         message: "Required chapter number is mandatory",
       };
-      content.push(objectData);
-
-    }
+      return objectData;
+    });
 
     if (content.length === 0) throw Error("No result found");
 
     const data = {
+      success: true,
       data: content,
       source: url,
     };

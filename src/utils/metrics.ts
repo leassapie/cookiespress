@@ -123,6 +123,7 @@ function startSystemMetrics(intervalMs = 15_000) {
 
   collect();
   interval = setInterval(collect, intervalMs);
+  interval.unref(); // don't keep the process alive on shutdown
 }
 
 function stopSystemMetrics() {

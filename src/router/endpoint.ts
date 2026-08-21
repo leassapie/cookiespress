@@ -37,8 +37,12 @@ import { get3hentai } from "../controller/3hentai/3hentaiGet";
 import { search3hentai } from "../controller/3hentai/3hentaiSearch";
 import { random3hentai } from "../controller/3hentai/3hentaiRandom";
 
+// aggregate
+import { searchAll } from "../controller/search-all";
+
 
 function scrapeRoutes(app: Hono<AppBindings>) {
+  app.get("/search/all", cors(), slow, limiter, adaptLegacyHandler(searchAll));
   app.get("/hentaifox/search", cors(), slow, limiter, adaptLegacyHandler(searchHentaifox));
   app.get("/hentaifox/get", cors(), slow, limiter, adaptLegacyHandler(getHentaifox));
   app.get("/hentaifox/random", cors(), slow, limiter, adaptLegacyHandler(randomHentaifox));

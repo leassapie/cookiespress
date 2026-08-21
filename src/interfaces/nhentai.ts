@@ -1,6 +1,10 @@
 export interface INhentaiGet {
   title: string;
-  optional_title: object;
+  optional_title: {
+    english: string | null;
+    japanese: string | null;
+    pretty: string | null;
+  };
   id: number;
   language: string;
   tags: string[];

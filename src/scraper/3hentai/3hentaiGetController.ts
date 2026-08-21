@@ -1,6 +1,7 @@
 import { load } from "cheerio";
-import JandaPress from "../../JandaPress";
-import c from "../../utils/options";
+import { janda } from "../../JandaPress";
+import { SITES as c } from "../../utils/constants";
+import { ThreehentaiGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
 
 interface IGet3hentai {
   title: string;
@@ -18,20 +19,18 @@ interface IData {
   source: string;
 }
 
-const janda = new JandaPress();
 
 export async function scrapeContent(url: string) {
   try {
     const res = await janda.fetchBody(url);
     const $ = load(res);
     
-    //get href in <div id="main-cover"> first
-    const actualId = $("#main-cover").find("a").attr("href");
-    //get after last second '/' in asu
-    const book = actualId?.split("/")[4];
-    
+    const urlId = new URL(url).pathname.match(/\/d\/(\d+)/)?.[1];
+    const pageId = $("a[href*='/d/']").first().attr("href")?.match(/\/d\/(\d+)/)?.[1];
+    const id = Number(urlId || pageId);
+    if (!Number.isInteger(id) || id < 1) throw Error("Could not determine 3hentai gallery id");
+
     const title = $("h1").text();
-    const id = parseInt(url.split("/").pop() as string) || parseInt(book as string);
     const tags = $("span.filter-elem")?.map((i, el) => $(el).text()).get();
     const tagsClean = tags.map((tag: string) => tag.replace(/<[^>]*>/g, "").replace(/\n/g, "").trim());
     const image = $("div.single-thumb-col")?.map((i, el) => $(el).find("img").attr("data-src")).get();
@@ -52,9 +51,9 @@ export async function scrapeContent(url: string) {
     const data: IData = {
       success: true,
       data: objectData,
-      source: `${c.THREEHENTAI}/d/${id ? id : book}`,
+      source: `${c.THREEHENTAI}/d/${id}`,
     };
-    return data;
+    return validateScraperOutput(ThreehentaiGetSchema, data, "3hentai");
   } catch (err) {
     const e = err as Error;
     throw Error(e.message);

@@ -1,47 +1,18 @@
 import { scrapeContent } from "../../scraper/pururin/pururinSearchController";
-import c from "../../utils/options";
+import { SITES as c } from "../../utils/constants";
 import { logger } from "../../utils/logger";
 import { maybeError } from "../../utils/modifier";
 import type { LegacyRequest } from "../../interfaces/legacy-request";
 import type { LegacyResponse } from "../../interfaces/legacy-response";
-// const sorting = ["newest", "most-popular", "highest-rated", "most-viewed", "title", "random"];
 
 export async function searchPururin(req: LegacyRequest, res: LegacyResponse) {
   try {
     const key = req.query.key as string;
-    const page = req.query.page || 1;
-    // const sort = req.query.sort as string || sorting[0] as string;
+    const page = Number(req.query.page || 1);
     if (!key) throw Error("Parameter key is required");
-    // if (!sorting.includes(sort)) throw Error("Invalid sort: " + sorting.join(", "));
+    if (!Number.isInteger(page) || page < 1) throw Error("Parameter page must be positive integer");
 
-    /**
-     * @api {get} /pururin/search Search pururin
-     * @apiName Search pururin
-     * @apiGroup pururin
-     * @apiDescription Search doujinshi on pururin
-     * @apiParam {String} key Keyword to search
-     * @apiParam {Number} [page=1] Page number
-     * 
-     * @apiSuccessExample {json} Success-Response:
-     *    HTTP/1.1 200 OK
-     *    HTTP/1.1 400 Bad Request
-     * 
-     * @apiExample {curl} curl
-     * curl -i http://localhost:3000/pururin/search?key=yuri
-     * 
-     * @apiExample {js} JS/TS
-     * import axios from "axios"
-     * 
-     * axios.get("http://localhost:3000/pururin/search?key=yuri")
-     * .then(res => console.log(res.data))
-     * .catch(err => console.error(err))
-     * 
-     * @apiExample {python} Python
-     * import aiohttp
-     * async with aiohttp.ClientSession() as session:
-     *  async with session.get("http://localhost:3000/pururin/search?key=yuri") as resp:
-     *    print(await resp.json())
-     */
+    
     
     const url = `${c.PURURIN}/search?q=${key}&page=${page}`;
     const data = await scrapeContent(url);
