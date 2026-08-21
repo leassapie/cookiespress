@@ -2,11 +2,16 @@
  * Per-host concurrency limiter.
  * Prevents port exhaustion and upstream IP bans by capping
  * the number of concurrent outgoing HTTP requests per host.
+ *
+ * Includes a queue timeout to prevent requests from waiting indefinitely
+ * when the semaphore is saturated under extreme load.
  */
+
+const QUEUE_TIMEOUT_MS = 10_000;
 
 class Semaphore {
   private current = 0;
-  private queue: Array<() => void> = [];
+  private queue: Array<{ resolve: () => void; reject: (err: Error) => void }> = [];
 
   constructor(private readonly max: number) {}
 
@@ -15,15 +20,32 @@ class Semaphore {
       this.current++;
       return;
     }
-    return new Promise<void>((resolve) => {
-      this.queue.push(resolve);
+
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        // Remove this entry from the queue on timeout
+        const idx = this.queue.findIndex((e) => e.resolve === resolve);
+        if (idx !== -1) this.queue.splice(idx, 1);
+        reject(new Error("Service busy, please try again later"));
+      }, QUEUE_TIMEOUT_MS);
+
+      this.queue.push({
+        resolve: () => {
+          clearTimeout(timer);
+          resolve();
+        },
+        reject: (err) => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      });
     });
   }
 
   release(): void {
     const next = this.queue.shift();
     if (next) {
-      next();
+      next.resolve();
     } else {
       this.current--;
     }

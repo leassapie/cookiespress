@@ -61,7 +61,7 @@ class JandaPress {
       await recordSuccess(source);
       return JSON.parse(res.body);
     } catch (err) {
-      if (!(err as Error).message.includes("circuit open")) {
+      if (!(err as Error).message.includes("circuit open") && !(err as Error).message.includes("Service busy")) {
         await recordFailure(source, err);
       }
       const e = err as Error;
@@ -110,7 +110,9 @@ class JandaPress {
       }
       return body;
     } catch (err) {
-      await recordFailure(source, err);
+      if (!(err as Error).message.includes("Service busy")) {
+        await recordFailure(source, err);
+      }
       throw new Error((err as Error).message);
     }
   }
