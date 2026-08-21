@@ -58,7 +58,7 @@ class JandaPress {
       return JSON.parse(res.body);
     } catch (err) {
       if (!(err as Error).message.includes("circuit open")) {
-        recordFailure(source);
+        recordFailure(source, err);
       }
       const e = err as Error;
       throw new Error(e.message);
@@ -104,7 +104,7 @@ class JandaPress {
       }
       return body;
     } catch (err) {
-      recordFailure(source);
+      recordFailure(source, err);
       throw new Error((err as Error).message);
     }
   }
