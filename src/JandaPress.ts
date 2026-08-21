@@ -42,7 +42,7 @@ class JandaPress {
    */
   async simulateNhentaiRequest(target: string): Promise<unknown> {
     const source = hostOf(target);
-    if (isCircuitOpen(source)) {
+    if (await isCircuitOpen(source)) {
       throw new Error(`${source} temporarily unavailable (circuit open)`);
     }
     try {
@@ -58,11 +58,11 @@ class JandaPress {
           timeout: REQUEST_TIMEOUT,
         }),
       );
-      recordSuccess(source);
+      await recordSuccess(source);
       return JSON.parse(res.body);
     } catch (err) {
       if (!(err as Error).message.includes("circuit open")) {
-        recordFailure(source, err);
+        await recordFailure(source, err);
       }
       const e = err as Error;
       throw new Error(e.message);
@@ -75,7 +75,7 @@ class JandaPress {
      */
   async fetchBody(url: string): Promise<Buffer> {
     const source = hostOf(url);
-    if (isCircuitOpen(source)) {
+    if (await isCircuitOpen(source)) {
       throw new Error(`${source} temporarily unavailable (circuit open)`);
     }
 
@@ -103,14 +103,14 @@ class JandaPress {
           timeout: REQUEST_TIMEOUT,
         }),
       );
-      recordSuccess(source);
+      await recordSuccess(source);
       const body = Buffer.from(res.rawBody);
       if (!isRandom) {
         await keyv.set(url, body, ttl);
       }
       return body;
     } catch (err) {
-      recordFailure(source, err);
+      await recordFailure(source, err);
       throw new Error((err as Error).message);
     }
   }

@@ -43,29 +43,29 @@ describe("isSourceOutage", () => {
 });
 
 describe("recordFailure classification", () => {
-  test("repeated 404s (nonexistent books) do NOT open the circuit", () => {
-    recordFailure("3hentai.net", httpError(404));
-    recordFailure("3hentai.net", httpError(404));
-    recordFailure("3hentai.net", httpError(404));
-    expect(isCircuitOpen("3hentai.net")).toBe(false);
-    recordSuccess("3hentai.net");
+  test("repeated 404s (nonexistent books) do NOT open the circuit", async () => {
+    await recordFailure("3hentai.net", httpError(404));
+    await recordFailure("3hentai.net", httpError(404));
+    await recordFailure("3hentai.net", httpError(404));
+    expect(await isCircuitOpen("3hentai.net")).toBe(false);
+    await recordSuccess("3hentai.net");
   });
 
-  test("repeated 5xx errors DO open the circuit", () => {
-    recordFailure("3hentai.net", httpError(503));
-    recordFailure("3hentai.net", httpError(503));
-    expect(isCircuitOpen("3hentai.net")).toBe(false);
-    recordFailure("3hentai.net", httpError(503));
-    expect(isCircuitOpen("3hentai.net")).toBe(true);
-    recordSuccess("3hentai.net");
-    expect(isCircuitOpen("3hentai.net")).toBe(false);
+  test("repeated 5xx errors DO open the circuit", async () => {
+    await recordFailure("3hentai.net", httpError(503));
+    await recordFailure("3hentai.net", httpError(503));
+    expect(await isCircuitOpen("3hentai.net")).toBe(false);
+    await recordFailure("3hentai.net", httpError(503));
+    expect(await isCircuitOpen("3hentai.net")).toBe(true);
+    await recordSuccess("3hentai.net");
+    expect(await isCircuitOpen("3hentai.net")).toBe(false);
   });
 
-  test("recordFailure without an error keeps legacy counting behavior", () => {
-    recordFailure("legacy-source");
-    recordFailure("legacy-source");
-    recordFailure("legacy-source");
-    expect(isCircuitOpen("legacy-source")).toBe(true);
-    recordSuccess("legacy-source");
+  test("recordFailure without an error keeps legacy counting behavior", async () => {
+    await recordFailure("legacy-source");
+    await recordFailure("legacy-source");
+    await recordFailure("legacy-source");
+    expect(await isCircuitOpen("legacy-source")).toBe(true);
+    await recordSuccess("legacy-source");
   });
 });

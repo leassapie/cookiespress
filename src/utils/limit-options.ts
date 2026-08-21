@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import type { AppBindings } from "../types/hono-bindings";
 import { getIp } from "./get-ip";
+import { getStateStore, isDistributed } from "./state-store";
 
 type Counter = { count: number; resetAt: number };
 
@@ -12,11 +13,12 @@ const SWEEP_MS = 30000;
 const buckets = new Map<string, Counter>();
 let overflowCounter: Counter | null = null;
 
-function touch(key: string): Counter {
+// ── In-memory path (fallback when Redis is not configured) ─────────────
+
+function touchSync(key: string): Counter {
   const now = Date.now();
   const current = buckets.get(key);
 
-  // When the map is saturated, reuse one in-memory fallback bucket instead of creating unbounded keys.
   if (!current && buckets.size >= BUCKET_MAX_SIZE) {
     if (!overflowCounter || overflowCounter.resetAt <= now) {
       overflowCounter = { count: 1, resetAt: now + WINDOW_MS };
@@ -44,14 +46,42 @@ function sweepExpiredBuckets() {
 
 setInterval(sweepExpiredBuckets, SWEEP_MS).unref();
 
+// ── Redis path (distributed, when REDIS_URL is set) ───────────────────
+
+async function touchAsync(key: string): Promise<Counter> {
+  const store = getStateStore();
+  const now = Date.now();
+  const raw = await store.get(key) as Counter | undefined;
+
+  if (!raw || raw.resetAt <= now) {
+    const fresh = { count: 1, resetAt: now + WINDOW_MS };
+    const ttlMs = Math.max(1000, WINDOW_MS);
+    await store.set(key, fresh, ttlMs);
+    return fresh;
+  }
+
+  raw.count += 1;
+  const ttlMs = Math.max(1000, raw.resetAt - now);
+  await store.set(key, raw, ttlMs);
+  return raw;
+}
+
+// ── Unified touch ────────────────────────────────────────────────────
+
+function touch(key: string): Counter | Promise<Counter> {
+  return isDistributed() ? touchAsync(key) : touchSync(key);
+}
+
+// ── Middleware ────────────────────────────────────────────────────────
+
 const slow: MiddlewareHandler<AppBindings> = async (c, next) => {
   if (c.req.method === "OPTIONS") {
     await next();
     return;
   }
-  if (buckets.size > BUCKET_MAX_SIZE) sweepExpiredBuckets();
+  if (!isDistributed() && buckets.size > BUCKET_MAX_SIZE) sweepExpiredBuckets();
   const key = `slow:${getIp(c.req.raw.headers)}:${c.req.path}`;
-  const bucket = touch(key);
+  const bucket = await touch(key);
   if (bucket.count > SLOW_LIMIT) {
     const retryAfterSec = Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000));
     c.header("Retry-After", String(retryAfterSec));
@@ -65,9 +95,9 @@ const limiter: MiddlewareHandler<AppBindings> = async (c, next) => {
     await next();
     return;
   }
-  if (buckets.size > BUCKET_MAX_SIZE) sweepExpiredBuckets();
+  if (!isDistributed() && buckets.size > BUCKET_MAX_SIZE) sweepExpiredBuckets();
   const key = `limit:${getIp(c.req.raw.headers)}:${c.req.path}`;
-  const bucket = touch(key);
+  const bucket = await touch(key);
   const remaining = Math.max(0, LIMIT_MAX - bucket.count);
   c.header("X-RateLimit-Limit", String(LIMIT_MAX));
   c.header("X-RateLimit-Remaining", String(remaining));

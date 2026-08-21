@@ -51,7 +51,7 @@ process.on("SIGINT", shutdown);
 const startTime = Date.now();
 const cacheBackend = process.env.REDIS_URL ? "redis" : "memory";
 
-app.get("/health", (c) => {
+app.get("/health", async (c) => {
   const mem = janda.currentProcess();
   return c.json({
     status: "ok",
@@ -72,7 +72,7 @@ app.get("/health", (c) => {
     graphql: env.JANDAPRESS_GRAPHQL === "true",
     sources: {
       total: 7,
-      circuitOpen: getOpenCircuits(),
+      circuitOpen: await getOpenCircuits(),
     },
   });
 });
