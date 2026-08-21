@@ -6,6 +6,7 @@ import { nhentaiHeaders } from "./utils/nhentai";
 import { logger } from "./utils/logger";
 import { isCircuitOpen, recordFailure, recordSuccess } from "./utils/circuit-breaker";
 import { withConcurrencyLimit } from "./utils/concurrency-limiter";
+import { AppError } from "./utils/app-error";
 function hostOf(url: string): string {
   try {
     return new URL(url).host;
@@ -43,7 +44,7 @@ class JandaPress {
   async simulateNhentaiRequest(target: string): Promise<unknown> {
     const source = hostOf(target);
     if (await isCircuitOpen(source)) {
-      throw new Error(`${source} temporarily unavailable (circuit open)`);
+      throw new AppError(503, `${source} temporarily unavailable (circuit open)`);
     }
     try {
       const res = await withConcurrencyLimit(source, () =>
@@ -76,7 +77,7 @@ class JandaPress {
   async fetchBody(url: string): Promise<Buffer> {
     const source = hostOf(url);
     if (await isCircuitOpen(source)) {
-      throw new Error(`${source} temporarily unavailable (circuit open)`);
+      throw new AppError(503, `${source} temporarily unavailable (circuit open)`);
     }
 
     const isRandom = url.includes("/random");
