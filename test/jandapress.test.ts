@@ -76,20 +76,20 @@ async function run(path: string, id?: number) {
 
 test("nhentai", async () => {
   await run("/nhentai/get?book=577774", 577774);
-});
+}, 15_000);
 
 test("hentaifox", async () => {
   await run("/hentaifox/get?book=59026", 59026);
-});
+}, 15_000);
 
 test("asmhentai", async () => {
   await run("/asmhentai/get?book=308830", 308830);
-});
+}, 15_000);
 
 test("hentai2read", async () => {
   await run("/hentai2read/get?book=butabako_shotaone_matome_fgo_hen/1");
-});
+}, 15_000);
 
 test("3hentai", async () => {
   await run("/3hentai/get?book=608979", 608979);
-});
+}, 15_000);

@@ -81,25 +81,6 @@ function timeAgo(input: Date) {
 }
 
 /**
- * Check nhentai status
- * @param url
- * @returns boolean
- */
-async function isReachable(url: string) {
-  const site = await got(url, {
-    throwHttpErrors: false,
-    retry: { limit: 0 },
-  });
-  if (site.statusCode === 200) {
-    return true;
-  } else if (site.statusCode === 308) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-/** 
  * Check if string is numeric
  * @param val
  * @returns boolean
@@ -118,6 +99,7 @@ export async function getIdRandomNhentai(): Promise<number> {
     headers: nhentaiHeaders(),
     throwHttpErrors: false,
     retry: { limit: 0 },
+    timeout: { request: 10_000, connect: 5_000 },
   });
 
   const body = JSON.parse(res.body) as Record<string, unknown>;
@@ -183,7 +165,12 @@ function extractNhentaiId(input: unknown): number | null {
 export async function hentaiFoxPredictedExtension(url: string): Promise<".jpg" | ".webp"> {
   try {
     const jpgUrl = url;
-    const res = await got(jpgUrl, { method: "HEAD", throwHttpErrors: false, retry: { limit: 0 } });
+    const res = await got(jpgUrl, {
+      method: "HEAD",
+      throwHttpErrors: false,
+      retry: { limit: 0 },
+      timeout: { request: 10_000, connect: 5_000 },
+    });
 
     if (res.statusCode === 200) {
       return ".jpg";
@@ -199,5 +186,5 @@ export async function hentaiFoxPredictedExtension(url: string): Promise<".jpg" |
 
 export {
   getUrl, getId, getDate, timeAgo,
-  isReachable, removeNonNumeric
+  removeNonNumeric
 };

@@ -19,6 +19,11 @@ keyv.on("error", err => logger.error({ message: "Keyv connection error", error: 
 const ttl = 1000 * 60 * 60 * (Number(process.env.EXPIRE_CACHE) || 1);
 const GEO_TIMEOUT_MS = 3000;
 const LOCATION_CACHE_MS = 60 * 60 * 1000;
+
+// Upstream request defaults — timeout prevents hangs, retry handles transient failures.
+const REQUEST_TIMEOUT = { request: 10_000, connect: 5_000 };
+const RETRY_STATUS_CODES = [429, 500, 502, 503, 504];
+const RETRY_ERROR_CODES = ["ECONNRESET", "ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "EAI_AGAIN"];
 let cachedLocation: { value: string; expiresAt: number } | null = null;
 class JandaPress {
   url: string;
@@ -41,13 +46,14 @@ class JandaPress {
     try {
       const res = await got(target, {
         headers: nhentaiHeaders(),
-        throwHttpErrors: false,
-        retry: { limit: 0 },
+        retry: {
+          limit: target.includes("/random") ? 0 : 2,
+          methods: ["GET"],
+          statusCodes: target.includes("/random") ? [] : RETRY_STATUS_CODES,
+          errorCodes: target.includes("/random") ? [] : RETRY_ERROR_CODES,
+        },
+        timeout: REQUEST_TIMEOUT,
       });
-      if (res.statusCode !== 200) {
-        recordFailure(source);
-        throw new Error(`Request failed with status ${res.statusCode}`);
-      }
       recordSuccess(source);
       return JSON.parse(res.body);
     } catch (err) {
@@ -68,42 +74,38 @@ class JandaPress {
     if (isCircuitOpen(source)) {
       throw new Error(`${source} temporarily unavailable (circuit open)`);
     }
-    const cached = await keyv.get(url);
-    if (cached) {
-      logger.debug({ message: "Fetching from cache", url });
-      return cached;
-    } else if (url.includes("/random")) {
-      logger.debug({ message: "Random should not be cached", url });
-      const res = await got(url, {
-        headers: {
-          "User-Agent": this.useragent,
-        },
-        throwHttpErrors: false,
-        retry: { limit: 0 },
-      });
-      if (res.statusCode !== 200) {
-        recordFailure(source);
-        throw new Error(`Request failed with status ${res.statusCode}`);
+
+    const isRandom = url.includes("/random");
+    if (!isRandom) {
+      const cached = await keyv.get(url);
+      if (cached) {
+        logger.debug({ message: "Fetching from cache", url });
+        return cached;
       }
-      recordSuccess(source);
-      return Buffer.from(res.rawBody);
-    } else {
-      logger.debug({ message: "Fetching from source", url });
+    }
+
+    logger.debug({ message: isRandom ? "Random should not be cached" : "Fetching from source", url });
+
+    try {
       const res = await got(url, {
-        headers: {
-          "User-Agent": this.useragent,
+        headers: { "User-Agent": this.useragent },
+        retry: {
+          limit: isRandom ? 0 : 2,
+          methods: ["GET"],
+          statusCodes: isRandom ? [] : RETRY_STATUS_CODES,
+          errorCodes: isRandom ? [] : RETRY_ERROR_CODES,
         },
-        throwHttpErrors: false,
-        retry: { limit: 0 },
+        timeout: REQUEST_TIMEOUT,
       });
-      if (res.statusCode !== 200) {
-        recordFailure(source);
-        throw new Error(`Request failed with status ${res.statusCode}`);
-      }
       recordSuccess(source);
       const body = Buffer.from(res.rawBody);
-      await keyv.set(url, body, ttl);
+      if (!isRandom) {
+        await keyv.set(url, body, ttl);
+      }
       return body;
+    } catch (err) {
+      recordFailure(source);
+      throw new Error((err as Error).message);
     }
   }
   /**

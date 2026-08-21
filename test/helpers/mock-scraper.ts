@@ -166,6 +166,47 @@ export const HENTAI2READ_GET_FIXTURE = `<html><script>
 window.gData = {"images":["/1.jpg"],"title":"Sample Hentai2read Gallery","mainURL":"https://hentai2read.com/sample/","currentURL":"https://hentai2read.com/sample/1/","nextURL":"https://hentai2read.com/sample/2/"};
 </script></html>`;
 
+// Sample HTML page for hentaifox gallery
+export const HENTAIFOX_GET_FIXTURE = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Sample Hentaifox Gallery</title>
+</head>
+<body>
+  <a class="g_button" href="/g/59026/1/"></a>
+  <a class="tag_btn">futanari 12</a>
+  <a class="tag_btn">stockings 34</a>
+  <img src="https://i2.hentaifox.com/002/1410010/cover.jpg">
+  <img data-src="https://i2.hentaifox.com/002/1410010/1t.jpg">
+  <img data-src="https://i2.hentaifox.com/002/1410010/2t.jpg">
+  <span class="i_text pages">Pages: 3</span>
+  <div class="info">
+    <h1>Sample Hentaifox Gallery</h1>
+  </div>
+</body>
+</html>`;
+
+// Sample HTML page for asmhentai gallery
+export const ASMHENTAI_GET_FIXTURE = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Sample Asmhentai Gallery</title>
+</head>
+<body>
+  <div class="cover">
+    <a href="/gallery/308830/1/"></a>
+  </div>
+  <h1>Sample Asmhentai Gallery</h1>
+  <span class="badge tag">futanari (17,459)</span>
+  <span class="badge tag">stockings (105,787)</span>
+  <input id="t_pages" value="2">
+  <img data-src="//images.asmhentai.com/010/308830/cover.jpg">
+  <div class="pages">
+    <h3>Pages: 2</h3>
+  </div>
+</body>
+</html>`;
+
 // Sample 3hentai HTML page
 export const THREEHENTAI_HTML_FIXTURE = `<!DOCTYPE html>
 <html>

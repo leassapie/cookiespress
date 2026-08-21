@@ -11,7 +11,7 @@
     "start:dev": "bun run --watch src/index.ts",
     "lint": "bunx eslint . --ext .ts",
     "lint:fix": "bunx eslint . --fix",
-    "test:scrape": "bun run test/test.ts",
+    "test:scrape": "bun test ./test/test.ts",
     "test": "bun run test/nh.ts",
     "test:nhentai": "bun test test/jandapress.test.ts --test-name-pattern=^nhentai$",
     "test:hentaifox": "bun test test/jandapress.test.ts --test-name-pattern=^hentaifox$",

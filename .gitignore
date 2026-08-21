@@ -12,3 +12,6 @@ CHANGELOG.md
 theme.zip
 AGENT_SPECS/
 **/AGENT_SPECS/
+.qwen
+.gemini
+.agents

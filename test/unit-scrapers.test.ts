@@ -3,6 +3,8 @@ import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import {
   clearFixtures,
   HENTAI2READ_GET_FIXTURE,
+  HENTAIFOX_GET_FIXTURE,
+  ASMHENTAI_GET_FIXTURE,
   NHENTAI_GET_FIXTURE,
   THREEHENTAI_HTML_FIXTURE,
   registerFixture,
@@ -15,6 +17,13 @@ beforeAll(() => {
 
   // nhentai v2 gallery (used by /get)
   registerFixture("https://nhentai.net/api/v2/galleries/577774", NHENTAI_GET_FIXTURE);
+
+  // hentaifox gallery page + HEAD request for extension prediction
+  registerFixture("https://hentaifox.com/gallery/59026/", HENTAIFOX_GET_FIXTURE);
+  registerFixture("https://i2.hentaifox.com/002/1410010/1.jpg", "ok", true, 200);
+
+  // asmhentai gallery page
+  registerFixture("https://asmhentai.com/g/308830/", ASMHENTAI_GET_FIXTURE);
 
   // hentai2read gallery page
   registerFixture("https://hentai2read.com/sample/1", HENTAI2READ_GET_FIXTURE);
@@ -67,6 +76,43 @@ describe("hentai2read get scraper", () => {
     expect(result.success).toBe(true);
     expect(result.data?.title).toBe("Sample Hentai2read Gallery");
     expect(result.data?.image).toEqual(["https://cdn-ngocok-static.sinxdr.workers.dev/hentai/1.jpg"]);
+  });
+});
+
+describe("hentaifox get scraper", () => {
+  test("parses HTML into normalized shape", async () => {
+    const { scrapeContent } = await import("../src/scraper/hentaifox/hentaifoxGetController");
+    const result = await scrapeContent("https://hentaifox.com/gallery/59026/");
+
+    expect(result.success).toBe(true);
+    const data = result.data as { title: string; id: number; tags: string[]; total: number; image: string[] };
+    expect(data.title).toBe("Sample Hentaifox Gallery");
+    expect(data.id).toBe(59026);
+    expect(data.tags).toEqual(expect.arrayContaining(["futanari", "stockings"]));
+    expect(data.total).toBe(3);
+    expect(data.image).toEqual([
+      "https://i2.hentaifox.com/002/1410010/1.jpg",
+      "https://i2.hentaifox.com/002/1410010/2.jpg",
+      "https://i2.hentaifox.com/002/1410010/3.jpg",
+    ]);
+  });
+});
+
+describe("asmhentai get scraper", () => {
+  test("parses HTML into normalized shape", async () => {
+    const { scrapeContent } = await import("../src/scraper/asmhentai/asmhentaiGetController");
+    const result = await scrapeContent("https://asmhentai.com/g/308830/");
+
+    expect(result.success).toBe(true);
+    const data = result.data as { title: string; id: number; tags: string[]; total: number; image: string[] };
+    expect(data.title).toBe("Sample Asmhentai Gallery");
+    expect(data.id).toBe(308830);
+    expect(data.tags).toEqual(expect.arrayContaining(["futanari", "stockings"]));
+    expect(data.total).toBe(2);
+    expect(data.image).toEqual([
+      "https://images.asmhentai.com/010/308830/1.jpg",
+      "https://images.asmhentai.com/010/308830/2.jpg",
+    ]);
   });
 });
 

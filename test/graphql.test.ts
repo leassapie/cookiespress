@@ -43,17 +43,17 @@ function expectOk(res: GQLResponse, field: keyof GQLData, id?: number | string) 
 test("nhentai", async () => {
   const res = await run("{ nhentai { get(book: 577774) { success data { id } source } } }");
   expectOk(res, "nhentai", 577774);
-});
+}, 15_000);
 
 test("hentaifox", async () => {
   const res = await run("{ hentaifox { get(book: 59026) { success data { id } source } } }");
   expectOk(res, "hentaifox", 59026);
-});
+}, 15_000);
 
 test("asmhentai", async () => {
   const res = await run("{ asmhentai { get(book: 308830) { success data { id } source } } }");
   expectOk(res, "asmhentai", 308830);
-});
+}, 15_000);
 
 test("hentai2read", async () => {
   const book = "butabako_shotaone_matome_fgo_hen/1";
@@ -61,9 +61,9 @@ test("hentai2read", async () => {
   const res = await run(q);
   expectOk(res, "hentai2read");
   expect(res.data!.hentai2read!.get.data.id).toBeString();
-});
+}, 15_000);
 
 test("3hentai", async () => {
   const res = await run("{ threehentai { get(book: 608979) { success data { id } source } } }");
   expectOk(res, "threehentai", 608979);
-});
+}, 15_000);
