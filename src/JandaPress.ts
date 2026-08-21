@@ -17,7 +17,7 @@ function hostOf(url: string): string {
 const keyv = process.env.REDIS_URL
   ? new Keyv({ store: new KeyvRedis(process.env.REDIS_URL) })
   : new Keyv();
-  
+
 keyv.on("error", err => logger.error({ message: "Keyv connection error", error: (err as Error).message }));
 const ttl = 1000 * 60 * 60 * (Number(process.env.EXPIRE_CACHE) || 1);
 const GEO_TIMEOUT_MS = 3000;
@@ -35,9 +35,6 @@ class JandaPress {
   }
   /**
    * Execute nhentai request against official API.
-   * @param target url to fetch
-   * @returns Promise<unknown>
-   * @throws Error
    */
   async simulateNhentaiRequest(target: string): Promise<unknown> {
     const source = hostOf(target);
@@ -64,13 +61,15 @@ class JandaPress {
         await recordFailure(source, err);
       }
       const e = err as Error;
+      if (e.message.includes("Service busy")) throw new AppError(503, e.message);
+      if (e instanceof AppError) throw e;
+      // Preserve the original error message but drop the custom error type
+      // to avoid leaking internal error types to the API response.
       throw new Error(e.message);
     }
   }
   /**
      * Fetch body from url and check if it's cached
-     * @param url url to fetch
-     * @returns Buffer 
      */
   async fetchBody(url: string): Promise<Buffer> {
     const source = hostOf(url);
@@ -112,13 +111,14 @@ class JandaPress {
       if (!(err as Error).message.includes("Service busy")) {
         await recordFailure(source, err);
       }
-      throw new Error((err as Error).message);
+      const e = err as Error;
+      if (e.message.includes("Service busy")) throw new AppError(503, e.message);
+      if (e instanceof AppError) throw e;
+      throw new Error(e.message);
     }
   }
   /**
      * Fetch json from url and check if it's cached
-     * @param url url to fetch
-     * @returns Buffer
      */
   async fetchJson(url: string): Promise<unknown> {
     const cached = await keyv.get(url);
