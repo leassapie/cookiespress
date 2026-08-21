@@ -30,11 +30,6 @@ const ROUTES: RouteDef[] = [
   { path: "/nhentai/related", method: "get", summary: "Get nhentai related galleries", operationId: "nhentaiRelated", params: [{ name: "book", in: "query", required: true }] },
   { path: "/nhentai/random", method: "get", summary: "Get random nhentai gallery", operationId: "nhentaiRandom" },
 
-  // pururin
-  { path: "/pururin/get", method: "get", summary: "Get pururin gallery", operationId: "pururinGet", params: [{ name: "book", in: "query", required: true }] },
-  { path: "/pururin/search", method: "get", summary: "Search pururin galleries", operationId: "pururinSearch", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false }] },
-  { path: "/pururin/random", method: "get", summary: "Get random pururin gallery", operationId: "pururinRandom" },
-
   // hentaifox
   { path: "/hentaifox/get", method: "get", summary: "Get hentaifox gallery", operationId: "hentaifoxGet", params: [{ name: "book", in: "query", required: true }] },
   { path: "/hentaifox/search", method: "get", summary: "Search hentaifox galleries", operationId: "hentaifoxSearch", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false }] },
@@ -49,9 +44,6 @@ const ROUTES: RouteDef[] = [
   { path: "/hentai2read/get", method: "get", summary: "Get hentai2read gallery", operationId: "hentai2readGet", params: [{ name: "book", in: "query", required: true }] },
   { path: "/hentai2read/search", method: "get", summary: "Search hentai2read galleries", operationId: "hentai2readSearch", params: [{ name: "key", in: "query", required: true }] },
 
-  // simply-hentai
-  { path: "/simply-hentai/get", method: "get", summary: "Get simply-hentai gallery", operationId: "simplyHentaiGet", params: [{ name: "book", in: "query", required: true }] },
-
   // 3hentai
   { path: "/3hentai/get", method: "get", summary: "Get 3hentai gallery", operationId: "threeHentaiGet", params: [{ name: "book", in: "query", required: true }] },
   { path: "/3hentai/search", method: "get", summary: "Search 3hentai galleries", operationId: "threeHentaiSearch", params: [{ name: "key", in: "query", required: true }, { name: "page", in: "query", required: false }] },
@@ -59,7 +51,6 @@ const ROUTES: RouteDef[] = [
 
   // Redirect shortcuts
   { path: "/g/{id}", method: "get", summary: "Redirect to nhentai gallery", operationId: "redirectNhentai", params: [{ name: "id", in: "path", required: true }] },
-  { path: "/p/{id}", method: "get", summary: "Redirect to pururin gallery", operationId: "redirectPururin", params: [{ name: "id", in: "path", required: true }] },
   { path: "/h/{id}", method: "get", summary: "Redirect to hentaifox gallery", operationId: "redirectHentaifox", params: [{ name: "id", in: "path", required: true }] },
   { path: "/a/{id}", method: "get", summary: "Redirect to asmhentai gallery", operationId: "redirectAsmhentai", params: [{ name: "id", in: "path", required: true }] },
 

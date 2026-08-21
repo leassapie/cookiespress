@@ -7,7 +7,6 @@ import {
   GraphQLString,
 } from "graphql";
 import { SITES as c } from "../utils/constants";
-import { isReachable } from "../utils/modifier";
 import {
   nhentaiGetUrl,
   nhentaiRelatedUrl,
@@ -17,16 +16,12 @@ import {
 import { scrapeContent as nhentaiGetScrape } from "../scraper/nhentai/nhentaiGetController";
 import { scrapeContent as nhentaiSearchScrape } from "../scraper/nhentai/nhentaiSearchController";
 import { scrapeContent as nhentaiRelatedScrape } from "../scraper/nhentai/nhentaiRelatedController";
-import { scrapeContent as pururinGetScrape } from "../scraper/pururin/pururinGetController";
-import { scrapeContent as pururinRandomScrape } from "../scraper/pururin/pururinGetController";
-import { scrapeContent as pururinSearchScrape } from "../scraper/pururin/pururinSearchController";
 import { scrapeContent as hentaifoxGetScrape } from "../scraper/hentaifox/hentaifoxGetController";
 import { scrapeContent as hentaifoxSearchScrape } from "../scraper/hentaifox/hentaifoxSearchController";
 import { scrapeContent as asmhentaiGetScrape } from "../scraper/asmhentai/asmhentaiGetController";
 import { scrapeContent as asmhentaiSearchScrape } from "../scraper/asmhentai/asmhentaiSearchController";
 import { scrapeContent as hentai2readGetScrape } from "../scraper/hentai2read/hentai2readGetController";
 import { scrapeContent as hentai2readSearchScrape } from "../scraper/hentai2read/hentai2readSearchController";
-import { scrapeContent as simplyHentaiGetScrape } from "../scraper/simply-hentai/simply-hentaiGetController";
 import { scrapeContent as threehentaiGetScrape } from "../scraper/3hentai/3hentaiGetController";
 import { scrapeContent as threehentaiSearchScrape } from "../scraper/3hentai/3hentaiSearchController";
 
@@ -154,86 +149,6 @@ const NHentaiQueriesType = new GraphQLObjectType({
       resolve: async (_: unknown, args: { book: number }) => {
         const url = nhentaiRelatedUrl(String(args.book));
         return nhentaiRelatedScrape(url);
-      },
-    },
-  },
-});
-
-// ─── Pururin.Get ──────────────────────────────────
-const PururinGetDataType = new GraphQLObjectType({
-  name: "PururinGetData",
-  fields: {
-    title: { type: GraphQLString },
-    id: { type: GraphQLInt },
-    tags: { type: new GraphQLList(GraphQLString) },
-    extension: { type: GraphQLString },
-    total: { type: GraphQLInt },
-    image: { type: new GraphQLList(GraphQLString) },
-  },
-});
-
-const PururinGetResultType = new GraphQLObjectType({
-  name: "PururinGetResult",
-  fields: {
-    success: { type: GraphQLBoolean },
-    data: { type: PururinGetDataType },
-    source: { type: GraphQLString },
-  },
-});
-
-// ─── Pururin.Search ───────────────────────────────
-const PururinSearchDataType = new GraphQLObjectType({
-  name: "PururinSearchData",
-  fields: {
-    title: { type: GraphQLString },
-    cover: { type: GraphQLString },
-    id: { type: GraphQLInt },
-    language: { type: GraphQLString },
-    info: { type: GraphQLString },
-    link: { type: GraphQLString },
-    total: { type: GraphQLInt },
-  },
-});
-
-const PururinSearchResultType = new GraphQLObjectType({
-  name: "PururinSearchResult",
-  fields: {
-    success: { type: GraphQLBoolean },
-    data: { type: new GraphQLList(PururinSearchDataType) },
-    page: { type: GraphQLInt },
-    sort: { type: GraphQLString },
-    source: { type: GraphQLString },
-  },
-});
-
-// ─── Pururin queries ──────────────────────────────
-const PururinQueriesType = new GraphQLObjectType({
-  name: "PururinQueries",
-  fields: {
-    get: {
-      type: PururinGetResultType,
-      args: { book: { type: GraphQLInt } },
-      resolve: async (_: unknown, args: { book: number }) => {
-        const url = `${c.PURURIN}/gallery/${args.book}/janda`;
-        return pururinGetScrape(url);
-      },
-    },
-    search: {
-      type: PururinSearchResultType,
-      args: {
-        key: { type: GraphQLString },
-        page: { type: GraphQLInt, defaultValue: 1 },
-      },
-      resolve: async (_: unknown, args: { key: string; page: number }) => {
-        const url = `${c.PURURIN}/search?q=${args.key}&page=${args.page}`;
-        return pururinSearchScrape(url);
-      },
-    },
-    random: {
-      type: PururinGetResultType,
-      resolve: async () => {
-        const url = `${c.PURURIN}/random`;
-        return pururinRandomScrape(url, true);
       },
     },
   },
@@ -464,45 +379,6 @@ const Hentai2readQueriesType = new GraphQLObjectType({
   },
 });
 
-// ─── SimplyHentai.Get ─────────────────────────────
-const SimplyHentaiGetDataType = new GraphQLObjectType({
-  name: "SimplyHentaiGetData",
-  fields: {
-    title: { type: GraphQLString },
-    id: { type: GraphQLString },
-    tags: { type: new GraphQLList(GraphQLString) },
-    total: { type: GraphQLInt },
-    image: { type: new GraphQLList(GraphQLString) },
-    language: { type: GraphQLString },
-  },
-});
-
-const SimplyHentaiGetResultType = new GraphQLObjectType({
-  name: "SimplyHentaiGetResult",
-  fields: {
-    success: { type: GraphQLBoolean },
-    data: { type: SimplyHentaiGetDataType },
-    source: { type: GraphQLString },
-  },
-});
-
-// ─── SimplyHentai queries ─────────────────────────
-const SimplyHentaiQueriesType = new GraphQLObjectType({
-  name: "SimplyHentaiQueries",
-  fields: {
-    get: {
-      type: SimplyHentaiGetResultType,
-      args: { book: { type: GraphQLString } },
-      resolve: async (_: unknown, args: { book: string }) => {
-        let actualAPI = c.SIMPLY_HENTAI;
-        if (!await isReachable(c.SIMPLY_HENTAI)) actualAPI = c.SIMPLY_HENTAI_PROXIFIED;
-        const url = `${actualAPI}/${args.book}`;
-        return simplyHentaiGetScrape(url);
-      },
-    },
-  },
-});
-
 // ─── 3hentai.Get ──────────────────────────────────
 const ThreehentaiGetDataType = new GraphQLObjectType({
   name: "ThreehentaiGetData",
@@ -587,10 +463,6 @@ const QueryType = new GraphQLObjectType({
       type: NHentaiQueriesType,
       resolve: () => ({}),
     },
-    pururin: {
-      type: PururinQueriesType,
-      resolve: () => ({}),
-    },
     hentaifox: {
       type: HentaifoxQueriesType,
       resolve: () => ({}),
@@ -601,10 +473,6 @@ const QueryType = new GraphQLObjectType({
     },
     hentai2read: {
       type: Hentai2readQueriesType,
-      resolve: () => ({}),
-    },
-    simplyHentai: {
-      type: SimplyHentaiQueriesType,
       resolve: () => ({}),
     },
     threehentai: {

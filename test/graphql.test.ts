@@ -11,11 +11,9 @@ interface GetResult {
 
 interface GQLData {
   nhentai?: { get: GetResult };
-  pururin?: { get: GetResult };
   hentaifox?: { get: GetResult };
   asmhentai?: { get: GetResult };
   hentai2read?: { get: GetResult };
-  simplyHentai?: { get: GetResult };
   threehentai?: { get: GetResult };
 }
 
@@ -47,11 +45,6 @@ test("nhentai", async () => {
   expectOk(res, "nhentai", 577774);
 });
 
-test("pururin", async () => {
-  const res = await run("{ pururin { get(book: 47226) { success data { id } source } } }");
-  expectOk(res, "pururin", 47226);
-});
-
 test("hentaifox", async () => {
   const res = await run("{ hentaifox { get(book: 59026) { success data { id } source } } }");
   expectOk(res, "hentaifox", 59026);
@@ -68,15 +61,6 @@ test("hentai2read", async () => {
   const res = await run(q);
   expectOk(res, "hentai2read");
   expect(res.data!.hentai2read!.get.data.id).toBeString();
-});
-
-test("simply-hentai", async () => {
-  const book = "fate-grand-order/fgo-sanbunkatsuhou/all-pages";
-  const q = "{ simplyHentai { get(book: \"" + book + "\") { success data { id } source } } }";
-  const res = await run(q);
-  expect(res.data).toBeDefined();
-  expect(res.data!.simplyHentai).toBeDefined();
-  expect(res.data!.simplyHentai!.get.success).toBe(true);
 });
 
 test("3hentai", async () => {

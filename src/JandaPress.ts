@@ -1,9 +1,9 @@
+import got from "got";
 import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import { defaultUserAgent, nhentaiHeaders } from "./utils/modifier";
 import { logger } from "./utils/logger";
 import { isCircuitOpen, recordFailure, recordSuccess } from "./utils/circuit-breaker";
-
 function hostOf(url: string): string {
   try {
     return new URL(url).host;
@@ -11,7 +11,6 @@ function hostOf(url: string): string {
     return url;
   }
 }
-
 const keyv = process.env.REDIS_URL
   ? new Keyv({ store: new KeyvRedis(process.env.REDIS_URL) })
   : new Keyv();
@@ -20,10 +19,7 @@ keyv.on("error", err => logger.error({ message: "Keyv connection error", error: 
 const ttl = 1000 * 60 * 60 * (Number(process.env.EXPIRE_CACHE) || 1);
 const GEO_TIMEOUT_MS = 3000;
 const LOCATION_CACHE_MS = 60 * 60 * 1000;
-
 let cachedLocation: { value: string; expiresAt: number } | null = null;
-
-
 class JandaPress {
   url: string;
   useragent: string;
@@ -31,7 +27,6 @@ class JandaPress {
     this.url = "";
     this.useragent = process.env.USER_AGENT || defaultUserAgent();
   }
-
   /**
    * Execute nhentai request against official API.
    * @param target url to fetch
@@ -44,16 +39,17 @@ class JandaPress {
       throw new Error(`${source} temporarily unavailable (circuit open)`);
     }
     try {
-      const res = await fetch(target, {
+      const res = await got(target, {
         headers: nhentaiHeaders(),
-        redirect: "follow"
+        throwHttpErrors: false,
+        retry: { limit: 0 },
       });
-      if (!res.ok) {
+      if (res.statusCode !== 200) {
         recordFailure(source);
-        throw new Error(`Request failed with status ${res.status}`);
+        throw new Error(`Request failed with status ${res.statusCode}`);
       }
       recordSuccess(source);
-      return await res.json();
+      return JSON.parse(res.body);
     } catch (err) {
       if (!(err as Error).message.includes("circuit open")) {
         recordFailure(source);
@@ -62,7 +58,6 @@ class JandaPress {
       throw new Error(e.message);
     }
   }
-
   /**
      * Fetch body from url and check if it's cached
      * @param url url to fetch
@@ -73,46 +68,44 @@ class JandaPress {
     if (isCircuitOpen(source)) {
       throw new Error(`${source} temporarily unavailable (circuit open)`);
     }
-
     const cached = await keyv.get(url);
-
     if (cached) {
       logger.debug({ message: "Fetching from cache", url });
       return cached;
     } else if (url.includes("/random")) {
       logger.debug({ message: "Random should not be cached", url });
-      const res = await fetch(url, {
+      const res = await got(url, {
         headers: {
           "User-Agent": this.useragent,
         },
-        redirect: "follow"
+        throwHttpErrors: false,
+        retry: { limit: 0 },
       });
-      if (!res.ok) {
+      if (res.statusCode !== 200) {
         recordFailure(source);
-        throw new Error(`Request failed with status ${res.status}`);
+        throw new Error(`Request failed with status ${res.statusCode}`);
       }
       recordSuccess(source);
-      const body = Buffer.from(await res.arrayBuffer());
-      return body;
+      return Buffer.from(res.rawBody);
     } else {
       logger.debug({ message: "Fetching from source", url });
-      const res = await fetch(url, {
+      const res = await got(url, {
         headers: {
           "User-Agent": this.useragent,
         },
-        redirect: "follow"
+        throwHttpErrors: false,
+        retry: { limit: 0 },
       });
-      if (!res.ok) {
+      if (res.statusCode !== 200) {
         recordFailure(source);
-        throw new Error(`Request failed with status ${res.status}`);
+        throw new Error(`Request failed with status ${res.statusCode}`);
       }
       recordSuccess(source);
-      const body = Buffer.from(await res.arrayBuffer());
+      const body = Buffer.from(res.rawBody);
       await keyv.set(url, body, ttl);
       return body;
     }
   }
-
   /**
      * Fetch json from url and check if it's cached
      * @param url url to fetch
@@ -120,7 +113,6 @@ class JandaPress {
      */
   async fetchJson(url: string): Promise<unknown> {
     const cached = await keyv.get(url);
-
     if (cached) {
       logger.debug({ message: "Fetching from cache", url });
       return cached;
@@ -131,7 +123,6 @@ class JandaPress {
       return res;
     }
   }
-
   currentProcess() {
     const rss = process.memoryUsage().rss / 1024 / 1024;
     const heap = process.memoryUsage().heapUsed / 1024 / 1024;
@@ -141,20 +132,17 @@ class JandaPress {
       heap: `${Math.round(heap * 100) / 100}/${Math.round(heaptotal * 100) / 100} MB`
     };
   }
-
   async getServer(): Promise<string> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), GEO_TIMEOUT_MS);
-
     try {
-      // ip-api free tier often rejects HTTPS requests with 403;
-      const raw = await fetch("https://ipwho.is/", {
-        signal: controller.signal,
+      const raw = await got("https://ipwho.is/", {
+        timeout: { request: GEO_TIMEOUT_MS },
+        retry: { limit: 0 },
+        throwHttpErrors: false,
       });
-      if (!raw.ok) {
+      if (raw.statusCode !== 200) {
         return cachedLocation && cachedLocation.expiresAt > Date.now() ? cachedLocation.value : "Unknown";
       }
-      const data = await raw.json() as {
+      const data = JSON.parse(raw.body) as {
         success?: boolean;
         country?: string;
         region?: string;
@@ -167,21 +155,13 @@ class JandaPress {
       if (!country || !region) {
         return cachedLocation && cachedLocation.expiresAt > Date.now() ? cachedLocation.value : "Unknown";
       }
-
       const location = `${country}, ${region}`;
       cachedLocation = { value: location, expiresAt: Date.now() + LOCATION_CACHE_MS };
       return location;
     } catch {
       return cachedLocation && cachedLocation.expiresAt > Date.now() ? cachedLocation.value : "Unknown";
-    } finally {
-      clearTimeout(timeoutId);
-      if (!controller.signal.aborted) {
-        controller.abort();
-      }
     }
-    
   }
 }
-
 export default JandaPress;
 export const janda = new JandaPress();

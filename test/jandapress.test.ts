@@ -1,4 +1,5 @@
 /// <reference types="bun" />
+import got from "got";
 import { expect, test } from "bun:test";
 import app from "../src/index";
 import { nhentaiHeaders } from "../src/utils/modifier";
@@ -27,10 +28,10 @@ async function fetchNhentaiApi(id: number) {
 
   for (const url of urls) {
     try {
-      const res = await fetch(url, { headers: nhentaiHeaders(), redirect: "follow" });
-      if (res.status !== 200) continue;
+      const res = await got(url, { headers: nhentaiHeaders(), throwHttpErrors: false, retry: { limit: 0 } });
+      if (res.statusCode !== 200) continue;
 
-      const json = await res.json() as NhentaiApiResponse;
+      const json = JSON.parse(res.body) as NhentaiApiResponse;
       const resolvedId = json.id ?? json?.result?.id;
       if (resolvedId === id) return;
     } catch {
@@ -77,10 +78,6 @@ test("nhentai", async () => {
   await run("/nhentai/get?book=577774", 577774);
 });
 
-test("pururin", async () => {
-  await run("/pururin/get?book=47226", 47226);
-});
-
 test("hentaifox", async () => {
   await run("/hentaifox/get?book=59026", 59026);
 });
@@ -91,10 +88,6 @@ test("asmhentai", async () => {
 
 test("hentai2read", async () => {
   await run("/hentai2read/get?book=butabako_shotaone_matome_fgo_hen/1");
-});
-
-test("simply-hentai", async () => {
-  await run("/simply-hentai/get?book=fate-grand-order/fgo-sanbunkatsuhou/all-pages");
 });
 
 test("3hentai", async () => {

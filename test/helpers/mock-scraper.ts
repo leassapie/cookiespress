@@ -1,7 +1,11 @@
 /**
  * Mock scraper HTTP responses for unit tests.
- * Import this before any scraper module to replace fetch with pre-recorded data.
+ * Uses Bun's mock.module to replace `got` with pre-recorded data.
+ *
+ * Call setupMockGot() before importing scrapers, then restoreMockGot() after the test.
  */
+
+import { mock } from "bun:test";
 
 // Map of URL patterns → fixture responses
 const FIXTURES = new Map<string, { body: unknown; ok: boolean; status: number }>();
@@ -24,33 +28,108 @@ export function getFixture(url: string): { body: unknown; ok: boolean; status: n
   return undefined;
 }
 
-/**
- * Install a global mock fetch that returns fixture data instead of making real HTTP requests.
- * Call setupMockFetch() before importing scrapers, then restoreMockFetch() after the test.
- */
-export function setupMockFetch() {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-    const fixture = getFixture(url);
-    if (fixture) {
-      return new Response(
-        fixture.body instanceof Buffer
-          ? fixture.body
-          : typeof fixture.body === "string"
-            ? fixture.body
-            : JSON.stringify(fixture.body),
-        { status: fixture.status },
-      );
-    }
-    // No fixture — use real fetch (or fail in CI)
-    return originalFetch(input, init);
+function buildMockResponse(fixture: { body: unknown; ok: boolean; status: number }, url: string) {
+  const bodyStr = fixture.body instanceof Buffer
+    ? fixture.body
+    : typeof fixture.body === "string"
+      ? fixture.body
+      : JSON.stringify(fixture.body);
+
+  return {
+    body: typeof bodyStr === "string" ? bodyStr : "",
+    rawBody: typeof bodyStr === "string" ? Buffer.from(bodyStr) : bodyStr,
+    statusCode: fixture.status,
+    statusMessage: fixture.status === 200 ? "OK" : "Error",
+    headers: { "content-type": "application/json" },
+    url,
+    ok: fixture.ok,
+    redirected: false,
+    timings: { start: 0, socket: 0, lookup: 0, connect: 0, secureConnect: 0, upload: 0, response: 0, end: 0, error: 0, abort: 0, phases: { wait: 0, dns: 0, tcp: 0, tls: 0, request: 0, firstByte: 0, download: 0, total: 0 } },
+    isFromCache: false,
+    ip: "127.0.0.1",
+    requestUrl: url,
+    retryCount: 0,
+    json: async () => {
+      if (typeof bodyStr === "string") {
+        return JSON.parse(bodyStr);
+      }
+      return bodyStr;
+    },
+    text: async () => typeof bodyStr === "string" ? bodyStr : bodyStr.toString(),
+    buffer: async () => typeof bodyStr === "string" ? Buffer.from(bodyStr) : bodyStr,
+    on: (..._args: unknown[]) => {},
   };
-  return originalFetch;
 }
 
-export function restoreMockFetch(originalFetch: typeof globalThis.fetch) {
-  globalThis.fetch = originalFetch;
+/**
+ * Install a mock for the `got` module that returns fixture data instead of making real HTTP requests.
+ * Call setupMockGot() before importing scrapers.
+ */
+export function setupMockGot() {
+  mock.module("got", () => {
+    const gotMock = async (url: string | URL, _options?: Record<string, unknown>) => {
+      const urlStr = typeof url === "string" ? url : url.href;
+      const fixture = getFixture(urlStr);
+      if (fixture) {
+        return buildMockResponse(fixture, urlStr);
+      }
+      throw new Error(`[mock-got] No fixture registered for: ${urlStr}`);
+    };
+
+    // Support got(url).json() / got(url).text() / got(url).buffer() chaining
+    const gotProxy = new Proxy(gotMock, {
+      get(_target, prop: string) {
+        if (prop === "default") return gotProxy;
+        if (prop === "get") return gotProxy;
+        if (prop === "post") {
+          return async (url: string | URL, options?: Record<string, unknown>) => {
+            return gotMock(url, { ...options, method: "POST" });
+          };
+        }
+        if (prop === "head") {
+          return async (url: string | URL, options?: Record<string, unknown>) => {
+            return gotMock(url, { ...options, method: "HEAD" });
+          };
+        }
+        if (prop === "put") {
+          return async (url: string | URL, options?: Record<string, unknown>) => {
+            return gotMock(url, { ...options, method: "PUT" });
+          };
+        }
+        if (prop === "delete") {
+          return async (url: string | URL, options?: Record<string, unknown>) => {
+            return gotMock(url, { ...options, method: "DELETE" });
+          };
+        }
+        if (prop === "extend") {
+          return () => gotProxy;
+        }
+        if (prop === "mergeOptions") {
+          return (_defaults: unknown, options: unknown) => options;
+        }
+        return undefined;
+      },
+      apply(_target, _thisArg, args: [string | URL, Record<string, unknown>?]) {
+        return gotMock(args[0], args[1]);
+      },
+    });
+
+    return { default: gotProxy };
+  });
+}
+
+/**
+ * Restore the original `got` module by clearing the mock.
+ * Note: Bun's mock.module persists for the lifetime of the test run.
+ * This function clears fixtures so subsequent tests don't use stale data.
+ */
+export function restoreMockGot() {
+  clearFixtures();
+  // mock.module cannot be "un-done" in Bun, but clearing fixtures
+  // ensures that stale fixture data doesn't leak into other tests.
+  // The mock itself will delegate to fixtures; with no fixtures it throws.
+  // To fully restore, re-import would be needed — but unit tests run
+  // in isolation so this is acceptable.
 }
 
 // ─── Fixture data ───────────────────────────────────
@@ -86,25 +165,6 @@ export const NHENTAI_GET_FIXTURE = {
 export const HENTAI2READ_GET_FIXTURE = `<html><script>
 window.gData = {"images":["/1.jpg"],"title":"Sample Hentai2read Gallery","mainURL":"https://hentai2read.com/sample/","currentURL":"https://hentai2read.com/sample/1/","nextURL":"https://hentai2read.com/sample/2/"};
 </script></html>`;
-
-// Sample HTML page for pururin gallery
-export const PURURIN_HTML_FIXTURE = `<!DOCTYPE html>
-<html>
-<head>
-  <meta property="og:title" content="Sample Pururin Gallery" />
-  <meta property="og:image" content="https://pururin.me/assets/cover/12345.jpg" />
-  <meta property="og:url" content="https://pururin.me/gallery/47226/janda" />
-</head>
-<body>
-  <div class="content-wrapper">
-    <ul class="list-inline">
-      <li>futanari</li>
-      <li>female-only</li>
-    </ul>
-  </div>
-  <span itemprop="numberOfPages">10</span>
-</body>
-</html>`;
 
 // Sample 3hentai HTML page
 export const THREEHENTAI_HTML_FIXTURE = `<!DOCTYPE html>

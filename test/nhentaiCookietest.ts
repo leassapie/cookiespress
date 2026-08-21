@@ -1,12 +1,14 @@
+import got from "got";
 import { nhentaiHeaders } from "../src/utils/modifier";
 
 async function test() {
-  const res = await fetch("https://nhentai.net/api/v2/galleries?page=1&per_page=1", {
+  const res = await got("https://nhentai.net/api/v2/galleries?page=1&per_page=1", {
     headers: nhentaiHeaders(),
-    redirect: "follow"
+    throwHttpErrors: false,
+    retry: { limit: 0 },
   });
-  
-  console.log(res.status);
+
+  console.log(res.statusCode);
 }
 
 test().catch(console.error);

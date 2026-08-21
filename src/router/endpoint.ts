@@ -9,17 +9,9 @@ import { searchHentaifox } from "../controller/hentaifox/hentaifoxSearch";
 import { getHentaifox } from "../controller/hentaifox/hentaifoxGet";
 import { randomHentaifox } from "../controller/hentaifox/hentaifoxRandom";
 
-// pururin
-import { getPururin } from "../controller/pururin/pururinGet";
-import { searchPururin } from "../controller/pururin/pururinSearch";
-import { randomPururin } from "../controller/pururin/pururinRandom";
-
 // hentai2read
 import { searchHentai2read } from "../controller/hentai2read/hentai2readSearch";
 import { getHentai2read } from "../controller/hentai2read/hentai2readGet";
-
-// simply-hentai
-import { getSimplyhentai } from "../controller/simply-hentai/simply-hentaiGet";
 
 // nhentai
 import { getNhentai } from "../controller/nhentai/nhentaiGet";
@@ -46,12 +38,8 @@ function scrapeRoutes(app: Hono<AppBindings>) {
   app.get("/hentaifox/search", cors(), slow, limiter, adaptLegacyHandler(searchHentaifox));
   app.get("/hentaifox/get", cors(), slow, limiter, adaptLegacyHandler(getHentaifox));
   app.get("/hentaifox/random", cors(), slow, limiter, adaptLegacyHandler(randomHentaifox));
-  app.get("/pururin/get", cors(), slow, limiter, adaptLegacyHandler(getPururin));
-  app.get("/pururin/search", cors(), slow, limiter, adaptLegacyHandler(searchPururin));
-  app.get("/pururin/random", cors(), slow, limiter, adaptLegacyHandler(randomPururin));
   app.get("/hentai2read/search", cors(), slow, limiter, adaptLegacyHandler(searchHentai2read));
   app.get("/hentai2read/get", cors(), slow, limiter, adaptLegacyHandler(getHentai2read));
-  app.get("/simply-hentai/get", cors(), slow, limiter, adaptLegacyHandler(getSimplyhentai));
   app.get("/asmhentai/get", cors(), slow, limiter, adaptLegacyHandler(getAsmhentai));
   app.get("/asmhentai/search", cors(), slow, limiter, adaptLegacyHandler(searchAsmhentai));
   app.get("/asmhentai/random", cors(), slow, limiter, adaptLegacyHandler(randomAsmhentai));

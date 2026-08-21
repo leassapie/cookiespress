@@ -113,14 +113,6 @@ app.get("/g/:id", slow, limiter, (c) => {
   return c.redirect(`https://nhentai.net/g/${id}`, 301);
 });
 
-app.get("/p/:id", slow, limiter, (c) => {
-  const id = c.req.param("id");
-
-  if (!isNumeric(id)) return c.json({ message: "This path need required number to work" }, 400);
-
-  return c.redirect(`https://pururin.to/gallery/${id}/re=janda`, 301);
-});
-
 app.get("/h/:id", slow, limiter, (c) => {
   const id = c.req.param("id");
 

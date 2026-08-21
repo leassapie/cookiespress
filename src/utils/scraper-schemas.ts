@@ -57,21 +57,6 @@ export const NhentaiSearchSchema = z.object({
   source: z.string(),
 });
 
-// ─── pururin ─────────────────────────────────────────
-
-export const PururinGetSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    title: z.string().min(1),
-    id: z.number().int().positive(),
-    tags: z.array(z.string()),
-    extension: z.string(),
-    total: z.number().int().nonnegative(),
-    image: z.array(z.string()),
-  }),
-  source: z.string(),
-});
-
 // ─── hentaifox ───────────────────────────────────────
 
 export const HentaifoxGetSchema = z.object({
@@ -115,21 +100,6 @@ export const Hentai2readGetSchema = z.object({
   current_url: z.string(),
   next_url: z.string().optional(),
   previus_url: z.string().optional(),
-  source: z.string(),
-});
-
-// ─── simply-hentai ───────────────────────────────────
-
-export const SimplyHentaiGetSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    title: z.string().min(1),
-    id: z.string().min(1),
-    tags: z.array(z.string()),
-    total: z.number().int().nonnegative(),
-    image: z.array(z.string()),
-    language: z.string(),
-  }),
   source: z.string(),
 });
 

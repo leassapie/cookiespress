@@ -4,14 +4,11 @@ import {
   clearFixtures,
   HENTAI2READ_GET_FIXTURE,
   NHENTAI_GET_FIXTURE,
-  PURURIN_HTML_FIXTURE,
   THREEHENTAI_HTML_FIXTURE,
   registerFixture,
-  restoreMockFetch,
-  setupMockFetch,
+  restoreMockGot,
+  setupMockGot,
 } from "./helpers/mock-scraper";
-
-let originalFetch: typeof globalThis.fetch;
 
 beforeAll(() => {
   clearFixtures();
@@ -22,18 +19,15 @@ beforeAll(() => {
   // hentai2read gallery page
   registerFixture("https://hentai2read.com/sample/1", HENTAI2READ_GET_FIXTURE);
 
-  // pururin gallery page
-  registerFixture("https://pururin.me/gallery/47226", PURURIN_HTML_FIXTURE);
-
   // 3hentai gallery and random pages
   registerFixture("https://3hentai.net/d/608979", THREEHENTAI_HTML_FIXTURE);
   registerFixture("https://3hentai.net/random", THREEHENTAI_HTML_FIXTURE);
 
-  originalFetch = setupMockFetch();
+  setupMockGot();
 });
 
 afterAll(() => {
-  restoreMockFetch(originalFetch);
+  restoreMockGot();
 });
 
 describe("nhentai get scraper", () => {
@@ -73,20 +67,6 @@ describe("hentai2read get scraper", () => {
     expect(result.success).toBe(true);
     expect(result.data?.title).toBe("Sample Hentai2read Gallery");
     expect(result.data?.image).toEqual(["https://cdn-ngocok-static.sinxdr.workers.dev/hentai/1.jpg"]);
-  });
-});
-
-describe("pururin get scraper", () => {
-  test("parses HTML into normalized shape", async () => {
-    const { scrapeContent } = await import("../src/scraper/pururin/pururinGetController");
-    const result = await scrapeContent("https://pururin.me/gallery/47226/janda");
-
-    expect(result.success).toBe(true);
-    const data = result.data as { title: string; id: number; tags: string[]; total: number };
-    expect(data.title).toBe("Sample Pururin Gallery");
-    expect(data.id).toBe(47226);
-    expect(data.tags).toEqual(expect.arrayContaining(["futanari", "female-only"]));
-    expect(data.total).toBe(10);
   });
 });
 

@@ -1,4 +1,5 @@
 /// <reference types="bun" />
+import got from "got";
 import { expect, test } from "bun:test";
 import { SITES as c } from "../src/utils/constants";
 import { name, version } from "../package.json";
@@ -8,9 +9,7 @@ const UA = `${name}/${version} Bun/1.3.14`;
 const sources = [
   c.NHENTAI,
   c.HENTAIFOX,
-  c.PURURIN,
   c.ASMHENTAI,
-  c.SIMPLY_HENTAI_PROXIFIED,
   c.HENTAI2READ,
   c.THREEHENTAI
 ];
@@ -20,14 +19,15 @@ function getKeyByValue(data: Record<string, string>, value: string) {
 }
 
 async function check(url: string) {
-  const res = await fetch(url, {
+  const res = await got(url, {
     headers: { "User-Agent": UA },
-    redirect: "follow"
+    throwHttpErrors: false,
+    retry: { limit: 0 },
   });
 
-  const ok = [200, 301, 308].includes(res.status || 0);
+  const ok = [200, 301, 308].includes(res.statusCode);
 
-  console.log(`${url} → ${res.status}`);
+  console.log(`${url} → ${res.statusCode}`);
 
   expect(ok).toBe(true);
 }

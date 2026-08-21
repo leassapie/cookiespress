@@ -1,6 +1,5 @@
-import { load } from "cheerio";
+import got from "got";
 import { logger } from "./logger";
-import { SITES as c } from "./constants";
 import { nhentaiRandomUrl } from "./nhentai";
 import * as pkg from "../../package.json";
 
@@ -11,34 +10,6 @@ function runtimeBunVersion(): string {
 
 export function defaultUserAgent(): string {
   return `${pkg.name}/${pkg.version} Bun/${runtimeBunVersion()}`;
-}
-
-/**
- * Get Pururin info and replace
- * @param value 
- * @returns string
- */
-function getPururinInfo(value: string) {
-  return value.replace(/\n/g, " ").replace(/\s\s+/g, " ").trim();
-}
-
-/**
- * Get Pururin page count
- * @param value
- * @returns number
- */
-function getPururinPageCount(value: string) {
-  const data = value.replace(/\n/g, " ").replace(/\s\s+/g, " ").trim().split(", ").pop();
-  return Number(data?.split(" ")[0]);
-}
-
-/**
- * Get Pururin language
- * @param value
- * @returns string
- */
-function getPururinLanguage(value: string) {
-  return value.split(",").reverse()[1].trim();
 }
 
 /**
@@ -115,10 +86,13 @@ function timeAgo(input: Date) {
  * @returns boolean
  */
 async function isReachable(url: string) {
-  const site = await fetch(url, { redirect: "follow" });
-  if (site.status === 200) {
+  const site = await got(url, {
+    throwHttpErrors: false,
+    retry: { limit: 0 },
+  });
+  if (site.statusCode === 200) {
     return true;
-  } else if (site.status === 308) {
+  } else if (site.statusCode === 308) {
     return true;
   } else {
     return false;
@@ -134,33 +108,19 @@ export const isNumeric = (val: string): boolean => {
   return !isNaN(Number(val));
 };
 
-/** 
- * Simulate random on pururin
- * @returns Promise<number>
- */
-export async function getIdRandomPururin(): Promise<number> {
-  const randomNumber = Math.floor(Math.random() * 500) + 1;
-  const raw = await fetch(`${c.PURURIN}/browse?sort=newest&page=${randomNumber}`);
-  const html = await raw.text();
-  const $ = load(html);
-  const gallery = $(".card.card-gallery").map((i, el) => $(el).attr("href")).get();
-  const galleryNumber = gallery.map(el => removeNonNumeric(el));
-  const randomgallery = galleryNumber[Math.floor(Math.random() * galleryNumber.length)];
-  return parseInt(randomgallery);
-}
-
 /**
  * Simulate random on nhentai
  * @returns Promise<number>
  */
 
 export async function getIdRandomNhentai(): Promise<number> {
-  const res = await fetch(nhentaiRandomUrl(), {
+  const res = await got(nhentaiRandomUrl(), {
     headers: nhentaiHeaders(),
-    redirect: "follow"
+    throwHttpErrors: false,
+    retry: { limit: 0 },
   });
 
-  const body = await res.json() as Record<string, unknown>;
+  const body = JSON.parse(res.body) as Record<string, unknown>;
   const id = extractNhentaiId(body);
 
   if (!id) {
@@ -223,9 +183,9 @@ function extractNhentaiId(input: unknown): number | null {
 export async function hentaiFoxPredictedExtension(url: string): Promise<".jpg" | ".webp"> {
   try {
     const jpgUrl = url;
-    const res = await fetch(jpgUrl, { method: "HEAD", redirect: "follow" });
+    const res = await got(jpgUrl, { method: "HEAD", throwHttpErrors: false, retry: { limit: 0 } });
 
-    if (res.status === 200) {
+    if (res.statusCode === 200) {
       return ".jpg";
     } else {
       return ".webp";
@@ -238,6 +198,6 @@ export async function hentaiFoxPredictedExtension(url: string): Promise<".jpg" |
 }
 
 export {
-  getPururinInfo, getPururinPageCount, getUrl, getId, getDate, timeAgo,
-  isReachable, getPururinLanguage, removeNonNumeric
+  getUrl, getId, getDate, timeAgo,
+  isReachable, removeNonNumeric
 };
