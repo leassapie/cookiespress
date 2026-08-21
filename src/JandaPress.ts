@@ -29,10 +29,8 @@ const RETRY_STATUS_CODES = [429, 500, 502, 503, 504];
 const RETRY_ERROR_CODES = ["ECONNRESET", "ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "EAI_AGAIN"];
 let cachedLocation: { value: string; expiresAt: number } | null = null;
 class JandaPress {
-  url: string;
   useragent: string;
   constructor() {
-    this.url = "";
     this.useragent = process.env.USER_AGENT || defaultUserAgent();
   }
   /**

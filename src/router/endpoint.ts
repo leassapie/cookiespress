@@ -32,24 +32,35 @@ import { random3hentai } from "../controller/3hentai/3hentaiRandom";
 // aggregate
 import { searchAll } from "../controller/search-all";
 
+// Standard middleware stack for all scrape routes
+const standard = [cors(), slow, limiter] as const;
+
+/**
+ * Register a GET route with the standard middleware stack.
+ * The `as MiddlewareHandler` cast is needed because Hono infers handler types
+ * from the middleware array, which doesn't match our Context<AppBindings> signatures.
+ */
+function route(app: Hono<AppBindings>, path: string, handler: MiddlewareHandler) {
+  app.get(path, ...standard, handler);
+}
 
 function scrapeRoutes(app: Hono<AppBindings>) {
-  app.get("/search/all", cors(), slow, limiter, searchAll as MiddlewareHandler);
-  app.get("/hentaifox/search", cors(), slow, limiter, searchHentaifox as MiddlewareHandler);
-  app.get("/hentaifox/get", cors(), slow, limiter, getHentaifox as MiddlewareHandler);
-  app.get("/hentaifox/random", cors(), slow, limiter, randomHentaifox as MiddlewareHandler);
-  app.get("/hentai2read/search", cors(), slow, limiter, searchHentai2read as MiddlewareHandler);
-  app.get("/hentai2read/get", cors(), slow, limiter, getHentai2read as MiddlewareHandler);
-  app.get("/asmhentai/get", cors(), slow, limiter, getAsmhentai as MiddlewareHandler);
-  app.get("/asmhentai/search", cors(), slow, limiter, searchAsmhentai as MiddlewareHandler);
-  app.get("/asmhentai/random", cors(), slow, limiter, randomAsmhentai as MiddlewareHandler);
-  app.get("/nhentai/get", cors(), slow, limiter, getNhentai as MiddlewareHandler);
-  app.get("/nhentai/search", cors(), slow, limiter, searchNhentai as MiddlewareHandler);
-  app.get("/nhentai/related", cors(), slow, limiter, relatedNhentai as MiddlewareHandler);
-  app.get("/nhentai/random", cors(), slow, limiter, randomNhentai as MiddlewareHandler);
-  app.get("/3hentai/get", cors(), slow, limiter, get3hentai as MiddlewareHandler);
-  app.get("/3hentai/search", cors(), slow, limiter, search3hentai as MiddlewareHandler);
-  app.get("/3hentai/random", cors(), slow, limiter, random3hentai as MiddlewareHandler);
+  route(app, "/search/all", searchAll as MiddlewareHandler);
+  route(app, "/hentaifox/search", searchHentaifox as MiddlewareHandler);
+  route(app, "/hentaifox/get", getHentaifox as MiddlewareHandler);
+  route(app, "/hentaifox/random", randomHentaifox as MiddlewareHandler);
+  route(app, "/hentai2read/search", searchHentai2read as MiddlewareHandler);
+  route(app, "/hentai2read/get", getHentai2read as MiddlewareHandler);
+  route(app, "/asmhentai/get", getAsmhentai as MiddlewareHandler);
+  route(app, "/asmhentai/search", searchAsmhentai as MiddlewareHandler);
+  route(app, "/asmhentai/random", randomAsmhentai as MiddlewareHandler);
+  route(app, "/nhentai/get", getNhentai as MiddlewareHandler);
+  route(app, "/nhentai/search", searchNhentai as MiddlewareHandler);
+  route(app, "/nhentai/related", relatedNhentai as MiddlewareHandler);
+  route(app, "/nhentai/random", randomNhentai as MiddlewareHandler);
+  route(app, "/3hentai/get", get3hentai as MiddlewareHandler);
+  route(app, "/3hentai/search", search3hentai as MiddlewareHandler);
+  route(app, "/3hentai/random", random3hentai as MiddlewareHandler);
 }
 
 export default scrapeRoutes;

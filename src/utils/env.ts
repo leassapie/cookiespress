@@ -12,6 +12,7 @@ const envSchema = z.object({
   NHENTAI_API_KEY: z.string().optional(),
   USER_AGENT: z.string().optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  RUN_MODE: z.enum(["debug", "prod"]).default("debug"),
   ALLOW_UNTRUSTED_PROXY_HEADERS: z.enum(["true", "false"]).default("false"),
   DEBUG: z.string().optional(),
 });

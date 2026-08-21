@@ -1,8 +1,10 @@
 import { load } from "cheerio";
+import got from "got";
 import { janda } from "../../JandaPress";
 import { SITES as c } from "../../utils/constants";
 import { HentaifoxGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
-import { hentaiFoxPredictedExtension } from "../../utils/modifier";
+import { logger } from "../../utils/logger";
+import { withConcurrencyLimit } from "../../utils/concurrency-limiter";
 
 interface IHentaiFoxGet {
   title: string;
@@ -11,6 +13,30 @@ interface IHentaiFoxGet {
   type: string;
   total: number;
   image: string[];
+}
+
+function hostOf(url: string): string {
+  try { return new URL(url).host; } catch { return "unknown"; }
+}
+
+/**
+ * Predict the extension of hentaiFox images by HEAD request.
+ */
+async function hentaiFoxPredictedExtension(url: string): Promise<".jpg" | ".webp"> {
+  try {
+    const res = await withConcurrencyLimit(hostOf(url), () =>
+      got(url, {
+        method: "HEAD",
+        throwHttpErrors: false,
+        retry: { limit: 0 },
+        timeout: { request: 10_000, connect: 5_000 },
+      }),
+    );
+    return res.statusCode === 200 ? ".jpg" : ".webp";
+  } catch (err) {
+    logger.error({ message: "hentaiFox extension prediction failed", error: (err as Error).message });
+    return ".webp";
+  }
 }
 
 
