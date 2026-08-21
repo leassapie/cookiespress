@@ -1,33 +1,19 @@
+import type { Context } from "hono";
+import type { AppBindings } from "../../types/hono-bindings";
 import { scrapeContent } from "../../scraper/3hentai/3hentaiSearchController";
-import { SITES as c } from "../../utils/constants";
-import { logger } from "../../utils/logger";
-import { maybeError } from "../../utils/modifier";
-import type { LegacyRequest } from "../../interfaces/legacy-request";
-import type { LegacyResponse } from "../../interfaces/legacy-response";
+import { SITES } from "../../utils/constants";
+import { AppError } from "../../utils/app-error";
+
 const sorting = ["recent", "popular-24h", "popular-7d", "popular"];
 
-export async function search3hentai(req: LegacyRequest, res: LegacyResponse) {
-  try {
-    const key = req.query.key || "";
-    const page = req.query.page || 1;
-    const sort = req.query.sort as string || sorting[0] as string;
-    if (!key) throw Error("Parameter key is required");
-    if (!sorting.includes(sort)) throw Error("Invalid sort: " + sorting.join(", "));
+export async function search3hentai(c: Context<AppBindings>) {
+  const key = c.req.query("key") || "";
+  const page = c.req.query("page") || "1";
+  const sort = c.req.query("sort") || sorting[0];
+  if (!key) throw new AppError(400, "Parameter key is required");
+  if (!sorting.includes(sort)) throw new AppError(400, "Invalid sort: " + sorting.join(", "));
 
-    
-
-    const url = `${c.THREEHENTAI}/search?q=${key}&page=${page}&sort=${sort}`;
-    const data = await scrapeContent(url);
-    logger.info({
-      path: req.path,
-      query: req.query,
-      method: req.method,
-      ip: req.ip,
-      useragent: req.get("User-Agent")
-    });
-    return res.json(data);
-  } catch (err) {
-    const e = err as Error;
-    res.status(400).json(maybeError(false, e.message));
-  }
+  const url = `${SITES.THREEHENTAI}/search?q=${key}&page=${page}&sort=${sort}`;
+  const data = await scrapeContent(url);
+  return c.json(data);
 }

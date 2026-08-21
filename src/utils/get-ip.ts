@@ -1,4 +1,6 @@
-import type { HeaderReader } from "../interfaces/header-reader";
+interface HeaderReader {
+  get(_name: string): string | null | undefined;
+}
 
 const TRUSTED_IP_HEADERS = ["cf-connecting-ip", "fly-client-ip", "x-vercel-forwarded-for", "x-client-ip"] as const;
 const ALLOW_UNTRUSTED_PROXY_HEADERS = process.env.ALLOW_UNTRUSTED_PROXY_HEADERS === "true";

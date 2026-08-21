@@ -1,7 +1,7 @@
 import { load } from "cheerio";
 import { janda } from "../../JandaPress";
 import { SITES as c } from "../../utils/constants";
-import { getId } from "../../utils/modifier";
+import { getId } from "../../utils/user-agent";
 
 interface IHentai2readSearch {
   title: string;

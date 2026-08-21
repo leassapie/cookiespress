@@ -8,7 +8,9 @@ import { openAPISpec } from "./lib/openapi-spec";
 import { slow, limiter } from "./utils/limit-options";
 import { getIp } from "./utils/get-ip";
 import { logger } from "./utils/logger";
-import { isNumeric } from "./utils/modifier";
+import { isNumeric } from "./utils/validation";
+import { AppError } from "./utils/app-error";
+import { requestLogger } from "./utils/request-logger";
 import { registry, inflightMiddleware, startSystemMetrics, stopSystemMetrics } from "./utils/metrics";
 import * as pkg from "../package.json";
 import { graphqlHandler } from "./graphql/handler";
@@ -28,6 +30,7 @@ const { printMetrics, registerMetrics } = prometheus({
 
 app.use("*", inflightMiddleware);
 app.use("*", registerMetrics);
+app.use("*", requestLogger);
 app.get("/metrics", printMetrics);
 
 // ── System Metrics Collector ────────────────────────
@@ -85,12 +88,6 @@ app.get("/", slow, limiter, async (c) => {
     server: await janda.getServer(),
     version: `${pkg.version}`,
   };
-  logger.info({
-    path: c.req.path,
-    method: c.req.method,
-    ip: getIp(c.req.raw.headers),
-    useragent: c.req.header("User-Agent")
-  });
   return c.json(data);
 });
 
@@ -105,53 +102,47 @@ if (env.JANDAPRESS_GRAPHQL === "true") {
   app.all("/graphql", graphqlHandler);
 }
 
-app.get("/g/:id", slow, limiter, (c) => {
-  const id = c.req.param("id");
+// ── Short-link redirects ────────────────────────────
 
-  if (!isNumeric(id)) return c.json({ message: "This path need required number to work" }, 400);
+const REDIRECT_MAP = [
+  { path: "/g/:id", host: "nhentai.net", prefix: "/g" },
+  { path: "/h/:id", host: "hentaifox.com", prefix: "/gallery" },
+  { path: "/a/:id", host: "asmhentai.com", prefix: "/g" },
+] as const;
 
-  return c.redirect(`https://nhentai.net/g/${id}`, 301);
-});
-
-app.get("/h/:id", slow, limiter, (c) => {
-  const id = c.req.param("id");
-
-  if (!isNumeric(id)) return c.json({ message: "This path need required number to work" }, 400);
-
-  return c.redirect(`https://hentaifox.com/gallery/${id}`, 301);
-});
-
-app.get("/a/:id", slow, limiter, (c) => {
-  const id = c.req.param("id");
-
-  if (!isNumeric(id)) return c.json({ message: "This path need required number to work" }, 400);
-
-  return c.redirect(`https://asmhentai.com/g/${id}`, 301);
-});
+for (const { path, host, prefix } of REDIRECT_MAP) {
+  app.get(path, slow, limiter, (c) => {
+    const id = c.req.param("id");
+    if (!isNumeric(id)) return c.json({ message: "This path need required number to work" }, 400);
+    return c.redirect(`https://${host}${prefix}/${id}`, 301);
+  });
+}
 
 app.notFound((c) => {
   const message = `The page not found in path ${c.req.path} and method ${c.req.method}`;
-  logger.error({
-    path: c.req.path,
-    method: c.req.method,
-    ip: getIp(c.req.raw.headers),
-    useragent: c.req.header("User-Agent")
-  });
-  return c.json({ message }, 404);
+  return c.json({ success: false, message }, 404);
 });
 
 app.onError((error, c) => {
-  logger.error({
+  const status = error instanceof AppError ? error.statusCode : 500;
+  const message = error.message;
+
+  const logData: Record<string, unknown> = {
     path: c.req.path,
     method: c.req.method,
     ip: getIp(c.req.raw.headers),
     useragent: c.req.header("User-Agent"),
-    message: error.message,
-    stack: error.stack
-  });
-  return c.json({
-    message: error.message
-  }, 500);
+    message,
+  };
+
+  if (status >= 500) {
+    logData.stack = error.stack;
+    logger.error(logData);
+  } else {
+    logger.warn(logData);
+  }
+
+  return c.json({ success: false, message }, status);
 });
 
 const port = env.PORT;

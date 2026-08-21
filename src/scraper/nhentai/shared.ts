@@ -1,6 +1,6 @@
 import { janda } from "../../JandaPress";
 import { SITES as c } from "../../utils/constants";
-import { getDate, timeAgo } from "../../utils/modifier";
+import { getDate, timeAgo } from "../../utils/date";
 import { NhentaiV2Detail, NhentaiV2GallerySummary, NhentaiV2Tag } from "../../interfaces/nhentai-v2";
 
 /**

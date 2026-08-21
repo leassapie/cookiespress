@@ -1,7 +1,8 @@
 import got from "got";
 import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
-import { defaultUserAgent, nhentaiHeaders } from "./utils/modifier";
+import { defaultUserAgent } from "./utils/user-agent";
+import { nhentaiHeaders } from "./utils/nhentai";
 import { logger } from "./utils/logger";
 import { isCircuitOpen, recordFailure, recordSuccess } from "./utils/circuit-breaker";
 function hostOf(url: string): string {

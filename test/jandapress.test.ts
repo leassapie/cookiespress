@@ -2,7 +2,7 @@
 import got from "got";
 import { expect, test } from "bun:test";
 import app from "../src/index";
-import { nhentaiHeaders } from "../src/utils/modifier";
+import { nhentaiHeaders } from "../src/utils/nhentai";
 
 const baseUrl = "http://localhost:3000";
 

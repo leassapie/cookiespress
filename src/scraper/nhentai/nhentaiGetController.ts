@@ -1,7 +1,7 @@
 import { janda } from "../../JandaPress";
 import { NhentaiGetSchema, validateScraperOutput } from "../../utils/scraper-schemas";
 import { SITES as c } from "../../utils/constants";
-import { getDate, timeAgo } from "../../utils/modifier";
+import { getDate, timeAgo } from "../../utils/date";
 import { NhentaiLegacy } from "../../interfaces/nhentai-legacy";
 import { INhentaiGet } from "../../interfaces/nhentai";
 import { NhentaiV2Detail } from "../../interfaces/nhentai-v2";

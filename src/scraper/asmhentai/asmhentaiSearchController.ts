@@ -1,6 +1,6 @@
 import { load } from "cheerio";
 import { janda } from "../../JandaPress";
-import { removeNonNumeric } from "../../utils/modifier";
+import { removeNonNumeric } from "../../utils/validation";
 
 interface IAsmHentaiSearch {
   title: string;

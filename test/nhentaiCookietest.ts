@@ -1,5 +1,5 @@
 import got from "got";
-import { nhentaiHeaders } from "../src/utils/modifier";
+import { nhentaiHeaders } from "../src/utils/nhentai";
 
 async function test() {
   const res = await got("https://nhentai.net/api/v2/galleries?page=1&per_page=1", {

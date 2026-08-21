@@ -1,13 +1,12 @@
+import type { Context } from "hono";
+import type { AppBindings } from "../types/hono-bindings";
 import { scrapeContent as nhentaiSearch } from "../scraper/nhentai/nhentaiSearchController";
 import { scrapeContent as hentaifoxSearch } from "../scraper/hentaifox/hentaifoxSearchController";
 import { scrapeContent as asmhentaiSearch } from "../scraper/asmhentai/asmhentaiSearchController";
 import { scrapeContent as hentai2readSearch } from "../scraper/hentai2read/hentai2readSearchController";
 import { scrapeContent as threehentaiSearch } from "../scraper/3hentai/3hentaiSearchController";
-import { logger } from "../utils/logger";
-import { maybeError } from "../utils/modifier";
-import type { LegacyRequest } from "../interfaces/legacy-request";
-import type { LegacyResponse } from "../interfaces/legacy-response";
-import { SITES as c } from "../utils/constants";
+import { AppError } from "../utils/app-error";
+import { SITES } from "../utils/constants";
 
 // ─── Normalized search item shape ───────────────────
 
@@ -43,7 +42,7 @@ function normalizeItem(item: unknown, source: string): NormalizedItem {
       title: raw.title as string,
       cover: (raw.cover as string) || "",
       source: "hentaifox",
-      url: (raw.link as string) || `${c.HENTAIFOX}/gallery/${raw.id}`,
+      url: (raw.link as string) || `${SITES.HENTAIFOX}/gallery/${raw.id}`,
       tags: raw.category ? [raw.category as string] : undefined,
     };
   }
@@ -53,7 +52,7 @@ function normalizeItem(item: unknown, source: string): NormalizedItem {
       title: raw.title as string,
       cover: "",
       source: "asmhentai",
-      url: `${c.ASMHENTAI}/g/${raw.id}`,
+      url: `${SITES.ASMHENTAI}/g/${raw.id}`,
     };
   }
   case "hentai2read": {
@@ -71,7 +70,7 @@ function normalizeItem(item: unknown, source: string): NormalizedItem {
       title: raw.title as string,
       cover: "",
       source: "3hentai",
-      url: `${c.THREEHENTAI}/d/${raw.id}`,
+      url: `${SITES.THREEHENTAI}/d/${raw.id}`,
     };
   }
   default:
@@ -94,7 +93,7 @@ interface SearchResult {
 
 async function searchNhentai(key: string, page = 1): Promise<SearchResult> {
   try {
-    const url = `${c.NHENTAI}/api/v2/search?query=${encodeURIComponent(key)}&page=${page}`;
+    const url = `${SITES.NHENTAI}/api/v2/search?query=${encodeURIComponent(key)}&page=${page}`;
     const data = await nhentaiSearch(url);
     return { source: "nhentai", success: true, data: extractItems(data, "nhentai") };
   } catch (err) {
@@ -105,7 +104,7 @@ async function searchNhentai(key: string, page = 1): Promise<SearchResult> {
 
 async function searchHentaifox(key: string, page = 1): Promise<SearchResult> {
   try {
-    const url = `${c.HENTAIFOX}/search/?q=${encodeURIComponent(key)}&page=${page}`;
+    const url = `${SITES.HENTAIFOX}/search/?q=${encodeURIComponent(key)}&page=${page}`;
     const data = await hentaifoxSearch(url);
     return { source: "hentaifox", success: true, data: extractItems(data, "hentaifox") };
   } catch (err) {
@@ -116,7 +115,7 @@ async function searchHentaifox(key: string, page = 1): Promise<SearchResult> {
 
 async function searchAsmhentai(key: string, page = 1): Promise<SearchResult> {
   try {
-    const url = `${c.ASMHENTAI}/search/?q=${encodeURIComponent(key)}&page=${page}`;
+    const url = `${SITES.ASMHENTAI}/search/?q=${encodeURIComponent(key)}&page=${page}`;
     const data = await asmhentaiSearch(url);
     return { source: "asmhentai", success: true, data: extractItems(data, "asmhentai") };
   } catch (err) {
@@ -127,7 +126,7 @@ async function searchAsmhentai(key: string, page = 1): Promise<SearchResult> {
 
 async function searchHentai2read(key: string, _page = 1): Promise<SearchResult> {
   try {
-    const url = `${c.HENTAI2READ}/hentai-list/search/${encodeURIComponent(key)}`;
+    const url = `${SITES.HENTAI2READ}/hentai-list/search/${encodeURIComponent(key)}`;
     const data = await hentai2readSearch(url);
     return { source: "hentai2read", success: true, data: extractItems(data, "hentai2read") };
   } catch (err) {
@@ -138,7 +137,7 @@ async function searchHentai2read(key: string, _page = 1): Promise<SearchResult> 
 
 async function search3hentai(key: string, page = 1): Promise<SearchResult> {
   try {
-    const url = `${c.THREEHENTAI}/search?q=${encodeURIComponent(key)}&page=${page}`;
+    const url = `${SITES.THREEHENTAI}/search?q=${encodeURIComponent(key)}&page=${page}`;
     const data = await threehentaiSearch(url);
     return { source: "3hentai", success: true, data: extractItems(data, "3hentai") };
   } catch (err) {
@@ -147,41 +146,27 @@ async function search3hentai(key: string, page = 1): Promise<SearchResult> {
   }
 }
 
-export async function searchAll(req: LegacyRequest, res: LegacyResponse) {
-  try {
-    const key = req.query.key as string;
-    const page = Number(req.query.page || 1);
-    if (!key) throw Error("Parameter key is required");
-    if (!Number.isInteger(page) || page < 1) throw Error("Parameter page must be positive integer");
+export async function searchAll(c: Context<AppBindings>) {
+  const key = c.req.query("key") || "";
+  const page = Number(c.req.query("page") || 1);
+  if (!key) throw new AppError(400, "Parameter key is required");
+  if (!Number.isInteger(page) || page < 1) throw new AppError(400, "Parameter page must be positive integer");
 
-    const results = await Promise.allSettled([
-      searchNhentai(key, page),
-      searchHentaifox(key, page),
-      searchAsmhentai(key, page),
-      searchHentai2read(key, page),
-      search3hentai(key, page),
-    ]);
+  const results = await Promise.allSettled([
+    searchNhentai(key, page),
+    searchHentaifox(key, page),
+    searchAsmhentai(key, page),
+    searchHentai2read(key, page),
+    search3hentai(key, page),
+  ]);
 
-    const sources: SearchResult[] = results.map((r) =>
-      r.status === "fulfilled" ? r.value : { source: "unknown", success: false, data: [], error: r.reason?.message }
-    );
+  const sources: SearchResult[] = results.map((r) =>
+    r.status === "fulfilled" ? r.value : { source: "unknown", success: false, data: [], error: r.reason?.message }
+  );
 
-    logger.info({
-      path: req.path,
-      query: req.query.key,
-      method: req.method,
-      ip: req.ip,
-      sources: sources.filter((s) => s.success).length,
-      total: sources.length,
-    });
-
-    return res.json({
-      success: true,
-      key,
-      sources,
-    });
-  } catch (err) {
-    const e = err as Error;
-    res.status(400).json(maybeError(false, e.message));
-  }
+  return c.json({
+    success: true,
+    key,
+    sources,
+  });
 }

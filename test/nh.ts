@@ -1,5 +1,5 @@
 import got from "got";
-import { nhentaiHeaders } from "../src/utils/modifier";
+import { nhentaiHeaders } from "../src/utils/nhentai";
 
 const url = "https://nhentai.net";
 
