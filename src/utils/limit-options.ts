@@ -6,9 +6,7 @@ type Counter = { count: number; resetAt: number };
 
 const WINDOW_MS = 15 * 60 * 1000;
 const LIMIT_MAX = 50;
-const SLOW_DELAY_AFTER = 50;
-const SLOW_DELAY_MS = 1000;
-const SLOW_MAX_DELAY_MS = 20000;
+const SLOW_LIMIT = 40;
 const BUCKET_MAX_SIZE = 50000;
 const SWEEP_MS = 30000;
 const buckets = new Map<string, Counter>();
@@ -54,10 +52,10 @@ const slow: MiddlewareHandler<AppBindings> = async (c, next) => {
   if (buckets.size > BUCKET_MAX_SIZE) sweepExpiredBuckets();
   const key = `slow:${getIp(c.req.raw.headers)}:${c.req.path}`;
   const bucket = touch(key);
-  if (bucket.count > SLOW_DELAY_AFTER) {
-    const steps = bucket.count - SLOW_DELAY_AFTER;
-    const wait = Math.min(steps * SLOW_DELAY_MS, SLOW_MAX_DELAY_MS);
-    await new Promise((resolve) => setTimeout(resolve, wait));
+  if (bucket.count > SLOW_LIMIT) {
+    const retryAfterSec = Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000));
+    c.header("Retry-After", String(retryAfterSec));
+    return c.json({ message: "Too many requests, please slow down" }, 429);
   }
   await next();
 };
