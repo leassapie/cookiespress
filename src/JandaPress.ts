@@ -5,6 +5,7 @@ import { defaultUserAgent } from "./utils/user-agent";
 import { nhentaiHeaders } from "./utils/nhentai";
 import { logger } from "./utils/logger";
 import { isCircuitOpen, recordFailure, recordSuccess } from "./utils/circuit-breaker";
+import { withConcurrencyLimit } from "./utils/concurrency-limiter";
 function hostOf(url: string): string {
   try {
     return new URL(url).host;
@@ -45,16 +46,18 @@ class JandaPress {
       throw new Error(`${source} temporarily unavailable (circuit open)`);
     }
     try {
-      const res = await got(target, {
-        headers: nhentaiHeaders(),
-        retry: {
-          limit: target.includes("/random") ? 0 : 2,
-          methods: ["GET"],
-          statusCodes: target.includes("/random") ? [] : RETRY_STATUS_CODES,
-          errorCodes: target.includes("/random") ? [] : RETRY_ERROR_CODES,
-        },
-        timeout: REQUEST_TIMEOUT,
-      });
+      const res = await withConcurrencyLimit(source, () =>
+        got(target, {
+          headers: nhentaiHeaders(),
+          retry: {
+            limit: target.includes("/random") ? 0 : 2,
+            methods: ["GET"],
+            statusCodes: target.includes("/random") ? [] : RETRY_STATUS_CODES,
+            errorCodes: target.includes("/random") ? [] : RETRY_ERROR_CODES,
+          },
+          timeout: REQUEST_TIMEOUT,
+        }),
+      );
       recordSuccess(source);
       return JSON.parse(res.body);
     } catch (err) {
@@ -88,16 +91,18 @@ class JandaPress {
     logger.debug({ message: isRandom ? "Random should not be cached" : "Fetching from source", url });
 
     try {
-      const res = await got(url, {
-        headers: { "User-Agent": this.useragent },
-        retry: {
-          limit: isRandom ? 0 : 2,
-          methods: ["GET"],
-          statusCodes: isRandom ? [] : RETRY_STATUS_CODES,
-          errorCodes: isRandom ? [] : RETRY_ERROR_CODES,
-        },
-        timeout: REQUEST_TIMEOUT,
-      });
+      const res = await withConcurrencyLimit(source, () =>
+        got(url, {
+          headers: { "User-Agent": this.useragent },
+          retry: {
+            limit: isRandom ? 0 : 2,
+            methods: ["GET"],
+            statusCodes: isRandom ? [] : RETRY_STATUS_CODES,
+            errorCodes: isRandom ? [] : RETRY_ERROR_CODES,
+          },
+          timeout: REQUEST_TIMEOUT,
+        }),
+      );
       recordSuccess(source);
       const body = Buffer.from(res.rawBody);
       if (!isRandom) {
@@ -137,11 +142,13 @@ class JandaPress {
   }
   async getServer(): Promise<string> {
     try {
-      const raw = await got("https://ipwho.is/", {
-        timeout: { request: GEO_TIMEOUT_MS },
-        retry: { limit: 0 },
-        throwHttpErrors: false,
-      });
+      const raw = await withConcurrencyLimit("ipwho.is", () =>
+        got("https://ipwho.is/", {
+          timeout: { request: GEO_TIMEOUT_MS },
+          retry: { limit: 0 },
+          throwHttpErrors: false,
+        }),
+      );
       if (raw.statusCode !== 200) {
         return cachedLocation && cachedLocation.expiresAt > Date.now() ? cachedLocation.value : "Unknown";
       }

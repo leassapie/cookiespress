@@ -1,5 +1,17 @@
 import got from "got";
 import { logger } from "./logger";
+import { withConcurrencyLimit } from "./concurrency-limiter";
+
+/**
+ * Extract host from URL for concurrency limiting.
+ */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "unknown";
+  }
+}
 
 /**
  * Predict the extension of hentaiFox images
@@ -9,12 +21,14 @@ import { logger } from "./logger";
 export async function hentaiFoxPredictedExtension(url: string): Promise<".jpg" | ".webp"> {
   try {
     const jpgUrl = url;
-    const res = await got(jpgUrl, {
-      method: "HEAD",
-      throwHttpErrors: false,
-      retry: { limit: 0 },
-      timeout: { request: 10_000, connect: 5_000 },
-    });
+    const res = await withConcurrencyLimit(hostOf(url), () =>
+      got(jpgUrl, {
+        method: "HEAD",
+        throwHttpErrors: false,
+        retry: { limit: 0 },
+        timeout: { request: 10_000, connect: 5_000 },
+      }),
+    );
 
     if (res.statusCode === 200) {
       return ".jpg";
