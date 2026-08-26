@@ -4,7 +4,7 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { janda } from "./JandaPress";
 import type { AppBindings } from "./types/hono-bindings";
 import scrapeRoutes from "./router/endpoint";
-import { openAPISpec } from "./lib/openapi-spec";
+import { createOpenAPISpec } from "./lib/openapi-spec";
 import { slow, limiter } from "./utils/limit-options";
 import { getIp } from "./utils/get-ip";
 import { logger } from "./utils/logger";
@@ -91,7 +91,7 @@ app.get("/", slow, limiter, async (c) => {
   return c.json(data);
 });
 
-app.get("/docs", (c) => c.json(openAPISpec));
+app.get("/docs", (c) => c.json(createOpenAPISpec(c.req.url)));
 app.get("/playground", swaggerUI({ url: "/docs" }));
 
 scrapeRoutes(app);

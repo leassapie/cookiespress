@@ -120,3 +120,15 @@ export const openAPISpec = {
     ROUTES.map((route) => [route.path, routeToPathItem(route)])
   ),
 } as const;
+
+export function createOpenAPISpec(requestUrl: string) {
+  return {
+    ...openAPISpec,
+    servers: [
+      {
+        url: new URL(requestUrl).origin,
+        description: "Current server",
+      },
+    ],
+  };
+}
