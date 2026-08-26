@@ -14,6 +14,9 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   RUN_MODE: z.enum(["debug", "prod"]).default("debug"),
   ALLOW_UNTRUSTED_PROXY_HEADERS: z.enum(["true", "false"]).default("false"),
+  RATE_LIMIT_ENABLED: z.enum(["true", "false"]).default("true"),
+  SLOW_DOWN_ENABLED: z.enum(["true", "false"]).default("true"),
+  CONCURRENCY_LIMIT_ENABLED: z.enum(["true", "false"]).default("true"),
   DEBUG: z.string().optional(),
 });
 

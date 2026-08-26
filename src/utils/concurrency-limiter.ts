@@ -7,6 +7,9 @@
  * when the semaphore is saturated under extreme load.
  */
 
+import { validateEnv } from "./env";
+
+const { CONCURRENCY_LIMIT_ENABLED } = validateEnv();
 const QUEUE_TIMEOUT_MS = 10_000;
 
 class Semaphore {
@@ -73,6 +76,8 @@ const DEFAULTS: Record<string, number> = {
 };
 
 export function withConcurrencyLimit<T>(host: string, fn: () => Promise<T>): Promise<T> {
+  if (CONCURRENCY_LIMIT_ENABLED === "false") return fn();
+
   let sema = limits.get(host);
   if (!sema) {
     const max = DEFAULTS[host] ?? 10;

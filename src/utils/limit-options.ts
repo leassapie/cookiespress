@@ -2,6 +2,9 @@ import type { MiddlewareHandler } from "hono";
 import type { AppBindings } from "../types/hono-bindings";
 import { getIp } from "./get-ip";
 import { getStateStore, isDistributed } from "./state-store";
+import { validateEnv } from "./env";
+
+const { RATE_LIMIT_ENABLED, SLOW_DOWN_ENABLED } = validateEnv();
 
 type Counter = { count: number; resetAt: number };
 
@@ -75,7 +78,7 @@ function touch(key: string): Counter | Promise<Counter> {
 // ── Middleware ────────────────────────────────────────────────────────
 
 const slow: MiddlewareHandler<AppBindings> = async (c, next) => {
-  if (c.req.method === "OPTIONS") {
+  if (SLOW_DOWN_ENABLED === "false" || c.req.method === "OPTIONS") {
     await next();
     return;
   }
@@ -91,7 +94,7 @@ const slow: MiddlewareHandler<AppBindings> = async (c, next) => {
 };
 
 const limiter: MiddlewareHandler<AppBindings> = async (c, next) => {
-  if (c.req.method === "OPTIONS") {
+  if (RATE_LIMIT_ENABLED === "false" || c.req.method === "OPTIONS") {
     await next();
     return;
   }
